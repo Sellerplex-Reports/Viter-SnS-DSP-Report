@@ -1,0 +1,550 @@
+<title>Viter S&amp;S + DSP Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+/* Layout: SellerPlex EOM report style (single dark theme, matches the DSP EOM reports): sticky top nav, tab bar, hero header, KPI grids, chart cards, data tables */
+:root{
+  --bg:#0b0f18;--surface:#131928;--surface2:#1a2236;--border:#252f45;
+  --accent:#3b7ff5;--accent2:#6c3df5;--green:#22c55e;--amber:#f59e0b;
+  --red:#ef4444;--cyan:#22d3ee;--text:#e8edf7;--muted:#7a8aaa;--purple:#a78bfa;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Inter','Segoe UI',system-ui,sans-serif;font-size:14px;line-height:1.45}
+.topnav{position:sticky;top:env(safe-area-inset-top,0px);z-index:100;background:rgba(11,15,24,.96);border-bottom:1px solid var(--border);backdrop-filter:blur(8px);display:flex;align-items:center;gap:12px;padding:0 28px;height:56px}
+.topnav .logo{font-weight:800;font-size:15px;letter-spacing:.04em;color:var(--accent);display:flex;align-items:center;gap:8px;white-space:nowrap}
+.topnav .logo span{color:var(--text);font-weight:500}
+.topnav .report-title{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.topnav .spacer{flex:1}
+.topnav .timestamp{font-size:11px;color:var(--muted);background:var(--surface2);border-radius:6px;padding:4px 10px;border:1px solid var(--border);white-space:nowrap}
+.launch-badge{font-size:10px;font-weight:700;letter-spacing:.05em;background:linear-gradient(135deg,#f59e0b22,#f59e0b44);color:var(--amber);border:1px solid var(--amber);border-radius:20px;padding:3px 10px;text-transform:uppercase;white-space:nowrap}
+.tab-bar{background:var(--surface);border-bottom:1px solid var(--border);display:flex;padding:0 28px;overflow-x:auto}
+.tab-btn{padding:14px 18px;font-size:13px;font-weight:500;color:var(--muted);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;font-family:inherit}
+.tab-btn:hover{color:var(--text)}
+.tab-btn:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-content{display:none}
+.tab-content.active{display:block}
+.page{padding:28px;max-width:1440px;margin:0 auto}
+.section{margin-bottom:32px}
+.section-title{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.section-title::after{content:'';flex:1;height:1px;background:var(--border)}
+.section-title .q{color:var(--accent)}
+.hero-header{background:linear-gradient(135deg,var(--surface) 0%,#1a2540 100%);border:1px solid var(--border);border-radius:14px;padding:24px 28px;margin-bottom:24px;display:flex;align-items:center;gap:24px}
+.hero-header h1{font-size:24px;font-weight:800;text-wrap:balance}
+.hero-header .sub{font-size:13px;color:var(--muted);margin-top:4px;max-width:90ch}
+.hero-header .dsp-pill{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--cyan);background:#22d3ee15;border:1px solid #22d3ee44;border-radius:20px;padding:4px 12px;margin-top:10px;display:inline-block}
+.hero-header .accent-line{width:4px;height:56px;background:linear-gradient(to bottom,var(--accent),var(--accent2));border-radius:4px;flex-shrink:0}
+.assume{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 18px;display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center;margin-bottom:24px}
+.assume .lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+.assume label{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+.assume input{width:72px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text);font-family:inherit;font-size:13px;font-weight:600}
+.assume input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.assume .hint{font-size:11px;color:var(--muted);margin-left:auto}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}
+.kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px}
+.kpi-card:hover{border-color:var(--accent)}
+.kpi-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:8px}
+.kpi-value{font-size:24px;font-weight:800;line-height:1;color:var(--text);font-variant-numeric:tabular-nums}
+.kpi-value.accent{color:var(--accent)}.kpi-value.green{color:var(--green)}.kpi-value.amber{color:var(--amber)}.kpi-value.red{color:var(--red)}
+.kpi-sub{font-size:11px;color:var(--muted);margin-top:6px}
+.tag{display:inline-block;font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;margin-top:8px}
+.tag-red{background:#ef444422;color:var(--red);border:1px solid #ef444444}
+.tag-amber{background:#f59e0b22;color:var(--amber);border:1px solid #f59e0b44}
+.tag-green{background:#22c55e22;color:var(--green);border:1px solid #22c55e44}
+.tag-blue{background:#3b7ff522;color:var(--accent);border:1px solid #3b7ff544}
+.tag-purple{background:#a78bfa22;color:var(--purple);border:1px solid #a78bfa44}
+.insight-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.insight-card{background:var(--surface2);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:8px;padding:16px}
+.insight-card.g{border-left-color:var(--green)}.insight-card.a{border-left-color:var(--amber)}.insight-card.r{border-left-color:var(--red)}
+.insight-card .il{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:6px}
+.insight-card .iv{font-size:22px;font-weight:800;color:var(--text)}
+.insight-card .id{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5}
+.callout{margin-top:14px;padding:14px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:13px;color:var(--muted);line-height:1.6}
+.callout b{color:var(--text)}
+.chart-grid{display:grid;grid-template-columns:1fr;gap:20px}
+.text-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;min-width:0}
+.chart-card.full{grid-column:1/-1}
+.chart-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:4px}
+.chart-sub{font-size:11px;color:var(--muted);margin-bottom:14px;opacity:.85}
+.chart-container{position:relative;height:300px}
+.data-table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:auto}
+.data-table{width:100%;border-collapse:collapse;font-size:12px}
+.data-table thead tr{background:var(--surface2)}
+.data-table th{padding:10px 16px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-bottom:2px solid var(--border);border-right:1px solid var(--border);white-space:nowrap}
+.data-table th:last-child,.data-table td:last-child{border-right:none}
+.data-table td{padding:10px 16px;border-bottom:1px solid var(--border);border-right:1px solid var(--border);white-space:nowrap}
+.data-table tbody tr:last-child td{border-bottom:none}
+.data-table tbody tr:hover td{background:var(--surface2)}
+.data-table th.num,.num{text-align:right;font-variant-numeric:tabular-nums}
+.data-table tr.muted td{color:var(--muted);font-style:italic}
+.data-table td.wrap{white-space:normal;min-width:260px;line-height:1.4}
+.red-c{color:var(--red);font-weight:600}
+.note-list{display:grid;gap:8px;padding-left:18px;font-size:13px;color:var(--muted);line-height:1.55}
+.note-list b{color:var(--text)}
+.foot{font-size:11px;color:var(--muted);margin-top:8px}
+.picker{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:20px}
+.picker label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+.picker select{min-width:0;max-width:100%;flex:1 1 320px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text);font-family:inherit;font-size:13px}
+.picker select:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.data-table tbody tr.click{cursor:pointer}
+.data-table tbody tr.sel td{background:#3b7ff51a}
+.lowvol{font-size:10px;color:var(--amber);font-weight:600;margin-left:6px}
+@media(max-width:900px){.text-grid,.insight-grid{grid-template-columns:1fr}.chart-card.full{grid-column:1}.topnav .report-title,.topnav .timestamp{display:none}.assume .hint{margin-left:0}}
+@media(max-width:560px){.page{padding:16px}.topnav,.tab-bar{padding:0 16px}.hero-header{padding:18px}.kpi-value{font-size:21px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<nav class="topnav">
+  <div class="logo">SP <span>SellerPlex</span></div>
+  <div class="report-title">Viter US — Subscribe &amp; Save LTV + DSP Report</div>
+  <div class="spacer"></div>
+  <div class="timestamp">KPI window: Oct 2025 – Sep 2026</div>
+</nav>
+<div class="tab-bar" id="tabbar" role="tablist"></div>
+
+<div class="page">
+
+<!-- ===================== OVERVIEW ===================== -->
+<div class="tab-content active" id="tab-overview">
+  <div class="hero-header">
+    <div class="accent-line"></div>
+    <div>
+      <h1>What is an S&amp;S subscriber worth, and what can DSP pay to get one?</h1>
+      <div class="sub">Account level (VALI + Viter Energy). Built from the Sponsored Ads Subscribe &amp; Save report, AMC new-subscription and ad-path queries, the DSP console and AdLabs Sponsored Ads spend.</div>
+      <span class="dsp-pill">S&amp;S + DSP + AMC</span>
+    </div>
+  </div>
+
+  <div class="assume" role="group" aria-label="Assumptions">
+    <span class="lbl">Assumptions</span>
+    <label for="in-margin">Contribution margin <input id="in-margin" type="number" min="1" max="100" step="1" value="30">%</label>
+    <label for="in-payback">Payback share of LTV profit <input id="in-payback" type="number" min="1" max="100" step="1" value="30">%</label>
+    <label for="in-target">Extra new subs / month from DSP <input id="in-target" type="number" min="0" step="10" value="130"></label>
+    <label for="in-full" style="gap:6px"><input id="in-full" type="checkbox" checked style="width:auto"> Include one-time purchases in CLTV</label>
+    <span class="hint">Working assumptions. Enter your own margin and payback share; every number on the report updates.</span>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Headline</div>
+    <div class="insight-grid" id="insights"></div>
+    <div class="callout" id="takeaway"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="q">Q1</span> What Subscribe &amp; Save looks like today</div>
+    <div class="kpi-grid" id="k1"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="q">Q2</span> What we can afford to spend on DSP</div>
+    <div class="kpi-grid" id="k2"></div>
+  </div>
+</div>
+
+<!-- ===================== S&S ===================== -->
+<div class="tab-content" id="tab-sns">
+  <div class="section">
+    <div class="section-title">Subscriber trend</div>
+    <div class="chart-grid">
+      <div class="chart-card full"><div class="chart-title">Active S&amp;S subscribers</div><div class="chart-sub">End-of-month balance, Apr 2025 – Sep 2026</div><div class="chart-container"><canvas id="ch-active" role="img" aria-label="Active subscribers by month"></canvas></div></div>
+      <div class="chart-card full"><div class="chart-title">New vs cancelled subscriptions</div><div class="chart-sub">New = AMC sign-ups. Cancelled = new − change in balance.</div><div class="chart-container"><canvas id="ch-flow" role="img" aria-label="New and cancelled subscriptions by month"></canvas></div></div>
+      <div class="chart-card full"><div class="chart-title">S&amp;S coupons vs new subscriptions</div><div class="chart-sub">Bars: new S&amp;S subscriptions by brand (AMC). Lines: share of S&amp;S sales that used a coupon. VALI has run no S&amp;S coupons since Feb 2026.</div><div class="chart-container"><canvas id="ch-coupon" role="img" aria-label="Coupon share of S&S sales and new subscriptions by brand"></canvas></div></div>
+      <div class="chart-card full"><div class="chart-title">Monthly churn</div><div class="chart-sub">Mar–Apr 2026 spike follows Viter Energy stockouts in Feb–Mar (≈$15.7K lost S&amp;S sales)</div><div class="chart-container"><canvas id="ch-churn" role="img" aria-label="Monthly churn rate"></canvas></div></div>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-title">Full-customer value: what subscribers buy beyond S&amp;S</div>
+    <div class="data-table-wrap"><table class="data-table">
+      <thead><tr><th>Sign-up month</th><th class="num">New subscribers</th><th class="num">S&amp;S sales / customer</th><th class="num">One-time sales / customer</th><th class="num">Total / customer</th><th class="num">Uplift vs S&amp;S only</th></tr></thead>
+      <tbody id="full-body"></tbody>
+    </table></div>
+    <p class="foot">AMC: everything each new subscriber bought from the brand in the 180 days after their first S&amp;S sign-up. Sign-up months Oct 2025 – Mar 2026 (the ones with a full 6 months of data). The overall uplift is applied to CLTV when the "Include one-time purchases" box is ticked.</p>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Monthly detail</div>
+    <div class="data-table-wrap"><table class="data-table">
+      <thead><tr><th>Month</th><th class="num">Active subs</th><th class="num">New</th><th class="num">Cancelled</th><th class="num">Churn</th><th class="num">S&amp;S sales</th><th class="num">Sales / sub</th><th class="num">OOS lost sales</th><th class="num">Sponsored Ads spend</th><th class="num">DSP spend</th><th class="num">Top-of-funnel share</th><th class="num">Total ad spend / new sub</th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table></div>
+    <p class="foot">Dec 2025 S&amp;S file covers Dec 31 only, so its units and sales are excluded from per-subscriber averages. Churn above 10% in red.</p>
+  </div>
+</div>
+
+<!-- ===================== DSP & AD PATH ===================== -->
+<div class="tab-content" id="tab-dsp">
+  <div class="section">
+    <div class="section-title"><span class="q">Q3</span> Which ads new subscribers saw before signing up</div>
+    <div class="kpi-grid" id="k3"></div>
+    <div class="callout">AMC, sign-ups Oct 2025 – Sep 2026, any ad seen or clicked in the 30 days before sign-up. <b>Seeing an ad doesn't mean the ad caused the sign-up</b>, and the same spend also drives one-time orders.</div>
+  </div>
+  <div class="section">
+    <div class="chart-grid">
+      <div class="chart-card full"><div class="chart-title">New subscriptions by ad path</div><div class="chart-sub" id="path-sub"></div><div class="chart-container"><canvas id="ch-path" role="img" aria-label="New subscriptions by ad path per month"></canvas></div></div>
+      <div class="chart-card full"><div class="chart-title">Ad spend vs new subscribers</div><div class="chart-sub">Sponsored Ads + DSP spend (bars) vs new S&amp;S sign-ups (line)</div><div class="chart-container"><canvas id="ch-spend" role="img" aria-label="Ad spend and new subscribers by month"></canvas></div></div>
+      <div class="chart-card full"><div class="chart-title">DSP spend by funnel stage</div><div class="chart-sub">Apr 2025 – Sep 2026. Stage assigned from campaign names.</div><div class="chart-container"><canvas id="ch-dsp" role="img" aria-label="DSP spend by funnel stage per month"></canvas></div></div>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-title">DSP funnel stage: new subscribers reached</div>
+    <div class="data-table-wrap"><table class="data-table">
+      <thead><tr><th>Stage</th><th class="num">New subs reached</th><th class="num">DSP spend (Sep 2025 – Sep 2026)</th><th class="num">Spend per sub reached</th><th class="num">vs max cost</th></tr></thead>
+      <tbody id="stage-body"></tbody>
+    </table></div>
+    <p class="foot">One subscriber can be reached by more than one stage, so stages overlap.</p>
+  </div>
+  <div class="section">
+    <div class="section-title">DSP campaigns by new subscribers reached</div>
+    <div class="data-table-wrap"><table class="data-table">
+      <thead><tr><th>Campaign</th><th>Stage</th><th class="num">New subs reached</th></tr></thead>
+      <tbody id="camp-body"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ===================== PRODUCTS ===================== -->
+<div class="tab-content" id="tab-products">
+  <div class="picker">
+    <label for="sel-asin">Product</label>
+    <select id="sel-asin"></select>
+  </div>
+  <div class="section">
+    <div class="section-title" id="prod-title">Selected product</div>
+    <div class="kpi-grid" id="kp"></div>
+  </div>
+  <div class="section">
+    <div class="chart-grid">
+      <div class="chart-card full"><div class="chart-title">Subscribers, new sign-ups and coupon use</div><div class="chart-sub">Line: active subscribers. Bars: new subscriptions (AMC, from Oct 2025). Dotted line: share of S&amp;S sales that used a coupon (right axis).</div><div class="chart-container"><canvas id="ch-prod" role="img" aria-label="Selected product trend"></canvas></div></div>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-title">All products · Oct 2025 – Sep 2026 · click a row to select it</div>
+    <div class="data-table-wrap"><table class="data-table">
+      <thead><tr><th>Product</th><th>Brand</th><th class="num">Active subs</th><th class="num">New / mo</th><th class="num">Churn / mo</th><th class="num">Lifetime</th><th class="num">Days between shipments</th><th class="num">Revenue / sub / mo</th><th class="num">CLTV (S&amp;S only)</th><th class="num">Coupon share of S&amp;S sales</th><th class="num">OOS lost sales</th></tr></thead>
+      <tbody id="prod-body"></tbody>
+    </table></div>
+    <p class="foot">Days between shipments = 30.4 ÷ (S&amp;S units per active subscriber per month). Units, not orders, so multi-unit orders shorten it slightly. Dec 2025 excluded from per-subscriber averages.</p>
+  </div>
+</div>
+
+<!-- ===================== NOTES ===================== -->
+<div class="tab-content" id="tab-notes">
+  <div class="section">
+    <div class="section-title">How the numbers are built</div>
+    <div class="text-grid">
+      <div class="chart-card"><div class="chart-title">The math</div><ul class="note-list">
+        <li><b>Churn</b> = cancelled ÷ subscribers at start of month. Cancelled = AMC new sign-ups − change in subscriber balance.</li>
+        <li><b>Lifetime</b> = 1 ÷ monthly churn (capped at 24 months).</li>
+        <li><b>CLTV (revenue)</b> = S&amp;S revenue per subscriber per month × lifetime. <b>CLTV (profit)</b> = CLTV revenue × margin.</li>
+        <li><b>Full-customer CLTV</b> = S&amp;S CLTV × (1 + one-time purchase uplift from AMC).</li>
+        <li><b>Max cost per new subscriber</b> = CLTV profit × payback share. The bar each channel has to clear.</li>
+        <li><b>Spend per sub reached</b> = channel spend ÷ new subscribers who saw that channel in the 30 days before signing up.</li>
+      </ul></div>
+      <div class="chart-card"><div class="chart-title">What would change the picture</div><ul class="note-list">
+        <li><b>Margin assumption.</b> 30% is a working estimate. Enter your own margin in the field on the Overview tab.</li>
+        <li><b>Value beyond S&amp;S.</b> In their first 6 months, new subscribers spend 29% more on one-time purchases on top of S&amp;S (AMC). Full-customer CLTV applies that uplift to the whole lifetime, which assumes the mix holds after month 6.</li>
+        <li><b>Attribution.</b> "Reached" is exposure, not proof the ad caused the sign-up.</li>
+        <li><b>Brand mix.</b> Viter Energy churns faster than VALI (≈8.5% vs ≈5.7% a month).</li>
+        <li><b>Stock.</b> Stockouts in Feb–Mar 2026 drove the highest churn months.</li>
+        <li><b>Coupons.</b> S&amp;S coupons lift sign-ups on the products that run them (Viter Energy peaked at 16% of S&amp;S sales in Aug 2026). That lift should not be credited to DSP.</li>
+      </ul></div>
+      <div class="chart-card"><div class="chart-title">Data notes</div><ul class="note-list">
+        <li>AMC keeps 13 months, so churn and ad-path figures cover Oct 2025 – Sep 2026; trend charts go back to Apr 2025.</li>
+        <li>The ad-path query counts ≈4,250 sign-ups vs ≈4,940 in the new-subscription query; AMC hides small groups. Shares are reliable; the monthly new-subscriber count uses the larger query.</li>
+        <li>"DSP only" and "No ad exposure" were too small for AMC to show by month, so they're yearly totals.</li>
+        <li>Dec 2025 S&amp;S file covers one day; re-pull the full month.</li>
+        <li>Per-product churn uses AMC new subscriptions by ASIN. Products with under ~50 subscribers are flagged as low volume; their figures swing a lot.</li>
+      </ul></div>
+      <div class="chart-card"><div class="chart-title">Next steps</div><ul class="note-list">
+        <li><b>Brent:</b> confirm the target subscriber growth for the DSP shift.</li>
+        <li><b>DSP test:</b> shift budget from loyalty to top of funnel (start with Performance+ Customer Acquisition) and track spend per new subscriber reached.</li>
+        <li><b>AMC:</b> subscription cadence (1M / 2M / 3M) by product.</li>
+        <li><b>Stock:</b> flag Viter Energy stockout risk; it costs subscribers.</li>
+      </ul></div>
+    </div>
+    <p class="foot">Sources: Sponsored Ads Subscribe &amp; Save performance report (18 monthly files), AMC conversions_all (snsSubscription), AMC ad-path queries (30-day look-back), DSP console campaign report, AdLabs Sponsored Ads spend.</p>
+  </div>
+</div>
+
+</div>
+
+<script>
+const DATA = [{"month": "2025-04", "use": "Y", "active": 6986, "start": null, "new": null, "canc": null, "churn": null, "units": 2262, "sales": 54835.74, "oos": 275.88, "dsp": 8273.02, "dsp_tof": 1035.53, "ntb": 186, "sa": null, "sa_orders": null}, {"month": "2025-05", "use": "Y", "active": 7105, "start": 6986, "new": null, "canc": null, "churn": null, "units": 2328, "sales": 56285.58, "oos": 22.99, "dsp": 9096.36, "dsp_tof": 769.11, "ntb": 195, "sa": null, "sa_orders": null}, {"month": "2025-06", "use": "Y", "active": 7128, "start": 7105, "new": null, "canc": null, "churn": null, "units": 2240, "sales": 53462.03, "oos": 0, "dsp": 11401.18, "dsp_tof": 2976.18, "ntb": 217, "sa": null, "sa_orders": null}, {"month": "2025-07", "use": "Y", "active": 7227, "start": 7128, "new": null, "canc": null, "churn": null, "units": 2384, "sales": 56299.92, "oos": 62.45, "dsp": 10377.83, "dsp_tof": 3024.2, "ntb": 194, "sa": null, "sa_orders": null}, {"month": "2025-08", "use": "Y", "active": 7348, "start": 7227, "new": null, "canc": null, "churn": null, "units": 2371, "sales": 55771.29, "oos": 0, "dsp": 14895.42, "dsp_tof": 3518.25, "ntb": 167, "sa": null, "sa_orders": null}, {"month": "2025-09", "use": "Y", "active": 7369, "start": 7348, "new": null, "canc": null, "churn": null, "units": 2342, "sales": 56473.37, "oos": 39.96, "dsp": 14732.96, "dsp_tof": 3278.9, "ntb": 206, "sa": null, "sa_orders": null}, {"month": "2025-10", "use": "Y", "active": 7356, "start": 7369, "new": 437, "canc": 450, "churn": 0.0610666304790338, "units": 2269, "sales": 55300.72, "oos": 782.99, "dsp": 10724.63, "dsp_tof": 954.5, "ntb": 196, "sa": 42853.46, "sa_orders": 3120}, {"month": "2025-11", "use": "Y", "active": 7244, "start": 7356, "new": 335, "canc": 447, "churn": 0.0607667210440457, "units": 2071, "sales": 49046.79, "oos": 2177.4, "dsp": 12985.77, "dsp_tof": 2221.85, "ntb": 160, "sa": 21318.42, "sa_orders": 1964}, {"month": "2025-12", "use": "N", "active": 7142, "start": 7244, "new": 315, "canc": 417, "churn": 0.0575648812810602, "units": 56, "sales": 1327.45, "oos": 73.98, "dsp": 12771.59, "dsp_tof": 2087.21, "ntb": 142, "sa": 17683.91, "sa_orders": 1936}, {"month": "2026-01", "use": "Y", "active": 7050, "start": 7142, "new": 371, "canc": 463, "churn": 0.06482777933352, "units": 2147, "sales": 49324.93, "oos": 1923.52, "dsp": 12846.33, "dsp_tof": 2789.9, "ntb": 148, "sa": 21419.65, "sa_orders": 2259}, {"month": "2026-02", "use": "Y", "active": 7009, "start": 7050, "new": 354, "canc": 395, "churn": 0.0560283687943262, "units": 1981, "sales": 43881.42, "oos": 8732.65, "dsp": 9634.9, "dsp_tof": 2797.92, "ntb": 107, "sa": 27674.71, "sa_orders": 3111}, {"month": "2026-03", "use": "Y", "active": 6616, "start": 7009, "new": 310, "canc": 703, "churn": 0.100299614780996, "units": 1999, "sales": 44708.09, "oos": 6953.31, "dsp": 11993.23, "dsp_tof": 3679.57, "ntb": 125, "sa": 27459.53, "sa_orders": 2903}, {"month": "2026-04", "use": "Y", "active": 6314, "start": 6616, "new": 302, "canc": 604, "churn": 0.0912938331318017, "units": 1925, "sales": 49008.19, "oos": 1866.29, "dsp": 11703.89, "dsp_tof": 4794.99, "ntb": 95, "sa": 23675.03, "sa_orders": 2654}, {"month": "2026-05", "use": "Y", "active": 6206, "start": 6314, "new": 312, "canc": 420, "churn": 0.0665188470066519, "units": 1877, "sales": 49784.38, "oos": 2453.9, "dsp": 9670.88, "dsp_tof": 4300.96, "ntb": 106, "sa": 20987.85, "sa_orders": 2345}, {"month": "2026-06", "use": "Y", "active": 6257, "start": 6206, "new": 473, "canc": 422, "churn": 0.0679987109249114, "units": 2127, "sales": 55575.12, "oos": 551.11, "dsp": 6816.63, "dsp_tof": 2751.43, "ntb": 87, "sa": 25894.79, "sa_orders": 2492}, {"month": "2026-07", "use": "Y", "active": 6360, "start": 6257, "new": 521, "canc": 418, "churn": 0.0668051782004155, "units": 2134, "sales": 55903.23, "oos": 0, "dsp": 9838.68, "dsp_tof": 4005.73, "ntb": 200, "sa": 28657.05, "sa_orders": 2682}, {"month": "2026-08", "use": "Y", "active": 6565, "start": 6360, "new": 666, "canc": 461, "churn": 0.0724842767295598, "units": 2320, "sales": 63012.44, "oos": 9.99, "dsp": 8500.36, "dsp_tof": 2462.87, "ntb": 237, "sa": 28358.15, "sa_orders": 2600}, {"month": "2026-09", "use": "Y", "active": 6681, "start": 6565, "new": 545, "canc": 429, "churn": 0.0653465346534654, "units": 2296, "sales": 61600.12, "oos": 39.04, "dsp": 9021.54, "dsp_tof": 2004.29, "ntb": 146, "sa": 27842.62, "sa_orders": 2382}];
+const FUNNEL = {"Loyalty": [4194.98, 4721.93, 5002.33, 5309.8, 8435.19, 7989.91, 6753.98, 6562.73, 5952.46, 5782.07, 3992.45, 3902.21, 4351.09, 4322.31, 2993.29, 3491.22, 3381.92, 3876.51], "Retargeting": [3042.51, 3605.32, 3422.67, 2043.83, 2941.99, 3464.15, 3016.15, 4201.19, 4731.92, 4274.37, 2844.52, 4411.45, 2557.81, 1047.61, 1071.91, 2341.73, 2655.57, 3140.74], "Top of funnel": [1035.53, 769.11, 2976.18, 3024.2, 3518.25, 3278.9, 954.5, 2221.85, 2087.21, 2789.9, 2797.92, 3679.57, 4794.99, 4300.96, 2751.43, 4005.73, 2462.87, 2004.29]};
+const PATH = {"months": [{"month": "2025-10", "sa_only": 207, "both": 189}, {"month": "2025-11", "sa_only": 148, "both": 130}, {"month": "2025-12", "sa_only": 139, "both": 121}, {"month": "2026-01", "sa_only": 155, "both": 126}, {"month": "2026-02", "sa_only": 155, "both": 131}, {"month": "2026-03", "sa_only": 132, "both": 104}, {"month": "2026-04", "sa_only": 135, "both": 100}, {"month": "2026-05", "sa_only": 108, "both": 139}, {"month": "2026-06", "sa_only": 167, "both": 168}, {"month": "2026-07", "sa_only": 155, "both": 231}, {"month": "2026-08", "sa_only": 164, "both": 344}, {"month": "2026-09", "sa_only": 161, "both": 254}], "dsp_only": 80, "none": 310, "campaigns": [{"campaign": "Viter - Extra Strength Mints - Conversion - ROAS - ASIN RT", "stage": "Retargeting", "subs": 896}, {"campaign": "Viter - Energy Mints 5 Pack - Conversion - ROAS - 365d Loyalty", "stage": "Loyalty", "subs": 894}, {"campaign": "Viter - Energy Mints 5 Pack - Conversion - ROAS -  14d ASIN RT", "stage": "Retargeting", "subs": 630}, {"campaign": "Viter - Original Energy Mints - Conversion - ROAS - 90d Loyalty", "stage": "Loyalty", "subs": 598}, {"campaign": "Viter - All Mints - Conversion - TROAS - Performance+ Customer Acquisition", "stage": "Top of funnel", "subs": 591}, {"campaign": "Viter - Energy Mints 5 Pack - Conversion - ROAS - 365d Loyalty [OLD]", "stage": "Loyalty", "subs": 329}, {"campaign": "Viter - Extra Strength Mints - Consideration - DPVR - IM: Sports Nutrition Endurance and Energy Products", "stage": "Top of funnel", "subs": 223}, {"campaign": "Vali - Caffeine L Theanine - Conversion - TROAS - 30d ASIN RT", "stage": "Retargeting", "subs": 170}, {"campaign": "Vali - Caffeine L Theanine - Conversion - TROAS - 365d Loyalty", "stage": "Loyalty", "subs": 166}, {"campaign": "Vali - Caffeine L Theanine - Conversion - TROAS - Performance+ Retention", "stage": "Loyalty", "subs": 155}, {"campaign": "Vali - Caffeine L Theanine - Consideration - DPVR - Contextual - Category Sports Nutrition Endurance & Energy Supplements", "stage": "Top of funnel", "subs": 86}, {"campaign": "Vali - Caffeine L Theanine - Conversion - TROAS - 30d ASIN RT [OLD]", "stage": "Retargeting", "subs": 69}, {"campaign": "Viter - Energy Gum - Conversion - TROAS - 15d Product Views", "stage": "Retargeting", "subs": 25}, {"campaign": "Vali - Time Release Caffeine - B01N4ANQA3 - Low - ROAS - Loyalty", "stage": "Loyalty", "subs": 19}, {"campaign": "Viter - Energy Mints 6 Pack - Awareness - Reach - REC - Brand+ Prospecting", "stage": "Top of funnel", "subs": 16}, {"campaign": "Vali - Caffeine Pills - B074G3SYTT - Consideration - CPDPV", "stage": "Top of funnel", "subs": 12}, {"campaign": "Vali - Time Release Caffeine - B01N4ANQA3 - Low - ROAS - ASIN RT", "stage": "Retargeting", "subs": 10}, {"campaign": "[OLD] Vali - Electrolyte Salts - B01N1P1ODD - Low - ROAS - Loyalty", "stage": "Loyalty", "subs": 8}, {"campaign": "Vali - Time Release Caffeine Pills - B01N4ANQA3 - Consideration - CPDPV", "stage": "Top of funnel", "subs": 2}], "stage_spend13": {"Loyalty": 63352.13, "Retargeting": 39759.13, "Top of funnel": 38130.11}};
+const FULL = {"cohorts": [{"m": "2025-10", "customers": 434, "sns": 26124.61, "order": 7220.84}, {"m": "2025-11", "customers": 286, "sns": 15444.61, "order": 4042.5}, {"m": "2025-12", "customers": 247, "sns": 12881.88, "order": 5109.34}, {"m": "2026-01", "customers": 264, "sns": 16108.45, "order": 5313.59}, {"m": "2026-02", "customers": 273, "sns": 15425.35, "order": 4383.87}, {"m": "2026-03", "customers": 224, "sns": 12668.12, "order": 2468.61}], "mult": 1.2893};
+const ASINS = {"B01019B26K":{"brand":"Viter Energy","name":"Viter Energy Caffeine Mints 40mg, Sugar Free, Wintergreen, 20ct, 6\u2026","rows":[{"m":"2025-04","bal":496,"units":149,"sales":3276.5,"oos":0.0,"cs":351.9,"new":null},{"m":"2025-05","bal":527,"units":170,"sales":3738.29,"oos":0.0,"cs":769.71,"new":null},{"m":"2025-06","bal":544,"units":154,"sales":3386.45,"oos":0.0,"cs":219.78,"new":null},{"m":"2025-07","bal":544,"units":143,"sales":3144.56,"oos":0.0,"cs":22.01,"new":null},{"m":"2025-08","bal":541,"units":145,"sales":3188.54,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-09","bal":545,"units":155,"sales":3408.44,"oos":0.0,"cs":219.84,"new":null},{"m":"2025-10","bal":535,"units":154,"sales":3386.43,"oos":0.0,"cs":285.81,"new":26},{"m":"2025-11","bal":524,"units":113,"sales":2484.87,"oos":0.0,"cs":109.83,"new":15},{"m":"2025-12","bal":513,"units":6,"sales":131.94,"oos":0.0,"cs":0.0,"new":16},{"m":"2026-01","bal":488,"units":76,"sales":1671.24,"oos":290.29,"cs":0.0,"new":null},{"m":"2026-02","bal":463,"units":3,"sales":65.97,"oos":1861.31,"cs":0.0,"new":null},{"m":"2026-03","bal":322,"units":0,"sales":0.0,"oos":1357.6,"cs":0.0,"new":null},{"m":"2026-04","bal":209,"units":0,"sales":0.0,"oos":22.89,"cs":0.0,"new":null},{"m":"2026-05","bal":196,"units":32,"sales":799.65,"oos":0.0,"cs":149.93,"new":14},{"m":"2026-06","bal":198,"units":39,"sales":974.61,"oos":0.0,"cs":99.99,"new":15},{"m":"2026-07","bal":205,"units":50,"sales":1205.84,"oos":0.0,"cs":143.98,"new":12},{"m":"2026-08","bal":218,"units":52,"sales":1286.96,"oos":0.0,"cs":399.86,"new":22},{"m":"2026-09","bal":227,"units":56,"sales":1374.44,"oos":0.0,"cs":50.03,"new":19}]},"B01GS9F7IQ":{"brand":"Viter Energy","name":"Viter Energy Caffeine Mints 40mg, Sugar Free, Spearmint, 20ct, 6 Pack","rows":[{"m":"2025-04","bal":259,"units":72,"sales":1583.28,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-05","bal":250,"units":63,"sales":1385.37,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-06","bal":248,"units":55,"sales":1209.45,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-07","bal":249,"units":61,"sales":1341.38,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-08","bal":244,"units":58,"sales":1275.42,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-09","bal":244,"units":59,"sales":1297.4,"oos":0.0,"cs":43.98,"new":null},{"m":"2025-10","bal":244,"units":57,"sales":1253.43,"oos":0.0,"cs":44.0,"new":8},{"m":"2025-11","bal":247,"units":61,"sales":1341.38,"oos":0.0,"cs":87.99,"new":9},{"m":"2025-12","bal":238,"units":2,"sales":43.98,"oos":0.0,"cs":0.0,"new":11},{"m":"2026-01","bal":239,"units":63,"sales":1352.37,"oos":0.0,"cs":66.0,"new":14},{"m":"2026-02","bal":254,"units":93,"sales":1979.05,"oos":0.0,"cs":153.97,"new":22},{"m":"2026-03","bal":253,"units":82,"sales":1803.18,"oos":0.0,"cs":44.0,"new":17},{"m":"2026-04","bal":236,"units":29,"sales":833.71,"oos":496.14,"cs":0.0,"new":null},{"m":"2026-05","bal":219,"units":43,"sales":1226.56,"oos":47.26,"cs":0.0,"new":4},{"m":"2026-06","bal":211,"units":49,"sales":1194.99,"oos":118.11,"cs":74.93,"new":14},{"m":"2026-07","bal":210,"units":57,"sales":1389.42,"oos":0.0,"cs":124.91,"new":11},{"m":"2026-08","bal":216,"units":62,"sales":1536.88,"oos":0.0,"cs":199.95,"new":19},{"m":"2026-09","bal":220,"units":59,"sales":1449.41,"oos":0.0,"cs":0.0,"new":15}]},"B01HH9HYUU":{"brand":"Viter Energy","name":"Viter Energy Caffeine Mints 40mg, Sugar Free, Wintergreen, 8oz Bulk\u2026","rows":[{"m":"2025-04","bal":408,"units":123,"sales":4672.78,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-05","bal":416,"units":118,"sales":4482.82,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-06","bal":411,"units":126,"sales":4786.74,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-07","bal":406,"units":118,"sales":4482.82,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-08","bal":403,"units":103,"sales":3912.97,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-09","bal":397,"units":118,"sales":4482.83,"oos":0.0,"cs":113.86,"new":null},{"m":"2025-10","bal":397,"units":131,"sales":4976.69,"oos":0.0,"cs":190.11,"new":19},{"m":"2025-11","bal":382,"units":81,"sales":3077.2,"oos":0.0,"cs":76.01,"new":12},{"m":"2025-12","bal":387,"units":1,"sales":37.99,"oos":0.0,"cs":0.0,"new":15},{"m":"2026-01","bal":363,"units":30,"sales":1139.7,"oos":883.89,"cs":37.95,"new":null},{"m":"2026-02","bal":353,"units":1,"sales":37.99,"oos":2620.5,"cs":0.0,"new":null},{"m":"2026-03","bal":209,"units":0,"sales":0.0,"oos":1778.85,"cs":0.0,"new":null},{"m":"2026-04","bal":192,"units":40,"sales":1599.6,"oos":0.0,"cs":119.97,"new":15},{"m":"2026-05","bal":204,"units":45,"sales":1799.58,"oos":0.0,"cs":79.9,"new":16},{"m":"2026-06","bal":200,"units":51,"sales":1919.57,"oos":0.0,"cs":119.97,"new":10},{"m":"2026-07","bal":219,"units":75,"sales":2766.72,"oos":0.0,"cs":159.92,"new":28},{"m":"2026-08","bal":227,"units":77,"sales":2959.32,"oos":0.0,"cs":439.75,"new":30},{"m":"2026-09","bal":234,"units":77,"sales":2959.29,"oos":0.0,"cs":0.0,"new":19}]},"B01N1P1ODD":{"brand":"VALI","name":"VALI Electrolyte Salts Rapid Oral Rehydration Replacement Pills. Hy\u2026","rows":[{"m":"2025-04","bal":766,"units":192,"sales":5182.02,"oos":0.0,"cs":377.77,"new":null},{"m":"2025-05","bal":764,"units":189,"sales":4969.1,"oos":0.0,"cs":312.06,"new":null},{"m":"2025-06","bal":756,"units":185,"sales":4253.14,"oos":0.0,"cs":459.84,"new":null},{"m":"2025-07","bal":766,"units":194,"sales":4460.0,"oos":24.47,"cs":643.81,"new":null},{"m":"2025-08","bal":768,"units":190,"sales":4368.09,"oos":0.0,"cs":505.82,"new":null},{"m":"2025-09","bal":738,"units":185,"sales":4253.14,"oos":0.0,"cs":230.09,"new":null},{"m":"2025-10","bal":711,"units":151,"sales":3471.49,"oos":0.0,"cs":137.82,"new":15},{"m":"2025-11","bal":696,"units":161,"sales":3701.38,"oos":0.0,"cs":275.75,"new":16},{"m":"2025-12","bal":678,"units":8,"sales":183.92,"oos":0.0,"cs":22.99,"new":12},{"m":"2026-01","bal":661,"units":144,"sales":3230.06,"oos":0.0,"cs":114.99,"new":16},{"m":"2026-02","bal":657,"units":157,"sales":3521.27,"oos":0.0,"cs":46.13,"new":19},{"m":"2026-03","bal":635,"units":167,"sales":3793.31,"oos":0.0,"cs":0.0,"new":13},{"m":"2026-04","bal":623,"units":169,"sales":3839.31,"oos":0.0,"cs":0.0,"new":10},{"m":"2026-05","bal":618,"units":172,"sales":3869.95,"oos":0.0,"cs":0.0,"new":10},{"m":"2026-06","bal":610,"units":138,"sales":3134.28,"oos":0.0,"cs":0.0,"new":17},{"m":"2026-07","bal":602,"units":140,"sales":3126.59,"oos":0.0,"cs":0.0,"new":20},{"m":"2026-08","bal":597,"units":163,"sales":3735.87,"oos":0.0,"cs":0.0,"new":18},{"m":"2026-09","bal":594,"units":146,"sales":3333.54,"oos":0.0,"cs":0.0,"new":20}]},"B01N4ANQA3":{"brand":"VALI","name":"VALI Time Release Caffeine 100mg Capsules- Smart Slow Release for E\u2026","rows":[{"m":"2025-04","bal":592,"units":147,"sales":2791.51,"oos":0.0,"cs":512.8,"new":null},{"m":"2025-05","bal":621,"units":184,"sales":3494.08,"oos":0.0,"cs":683.79,"new":null},{"m":"2025-06","bal":640,"units":174,"sales":3304.25,"oos":0.0,"cs":645.65,"new":null},{"m":"2025-07","bal":660,"units":173,"sales":3285.23,"oos":0.0,"cs":474.72,"new":null},{"m":"2025-08","bal":650,"units":180,"sales":3418.2,"oos":0.0,"cs":683.64,"new":null},{"m":"2025-09","bal":653,"units":165,"sales":3133.35,"oos":0.0,"cs":436.79,"new":null},{"m":"2025-10","bal":617,"units":38,"sales":721.62,"oos":782.99,"cs":94.97,"new":null},{"m":"2025-11","bal":565,"units":62,"sales":1185.38,"oos":2177.4,"cs":18.97,"new":3},{"m":"2025-12","bal":533,"units":4,"sales":83.96,"oos":0.0,"cs":0.0,"new":null},{"m":"2026-01","bal":502,"units":105,"sales":2203.95,"oos":0.0,"cs":0.0,"new":null},{"m":"2026-02","bal":481,"units":95,"sales":1994.05,"oos":0.0,"cs":0.0,"new":null},{"m":"2026-03","bal":476,"units":116,"sales":2434.82,"oos":0.0,"cs":0.0,"new":7},{"m":"2026-04","bal":462,"units":93,"sales":1952.07,"oos":0.0,"cs":0.0,"new":8},{"m":"2026-05","bal":453,"units":106,"sales":2224.94,"oos":0.0,"cs":0.0,"new":10},{"m":"2026-06","bal":457,"units":129,"sales":2697.2,"oos":0.0,"cs":0.0,"new":21},{"m":"2026-07","bal":473,"units":125,"sales":2588.73,"oos":0.0,"cs":0.0,"new":33},{"m":"2026-08","bal":488,"units":135,"sales":2833.65,"oos":0.0,"cs":0.0,"new":38},{"m":"2026-09","bal":499,"units":145,"sales":3012.05,"oos":0.0,"cs":0.0,"new":43}]},"B06ZYK7S82":{"brand":"Viter Energy","name":"Viter Energy Caffeine Mints 40mg, Sugar Free, Spearmint, 8oz Bulk Bag","rows":[{"m":"2025-04","bal":211,"units":52,"sales":1975.49,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-05","bal":215,"units":70,"sales":2659.32,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-06","bal":220,"units":63,"sales":2393.38,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-07","bal":218,"units":59,"sales":2241.41,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-08","bal":221,"units":53,"sales":2013.47,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-09","bal":216,"units":62,"sales":2355.39,"oos":0.0,"cs":151.92,"new":null},{"m":"2025-10","bal":212,"units":50,"sales":1899.5,"oos":0.0,"cs":37.99,"new":7},{"m":"2025-11","bal":214,"units":54,"sales":2051.47,"oos":0.0,"cs":37.95,"new":11},{"m":"2025-12","bal":216,"units":2,"sales":75.98,"oos":0.0,"cs":0.0,"new":5},{"m":"2026-01","bal":218,"units":61,"sales":2279.42,"oos":0.0,"cs":0.0,"new":11},{"m":"2026-02","bal":204,"units":36,"sales":1367.64,"oos":464.9,"cs":0.0,"new":null},{"m":"2026-03","bal":187,"units":5,"sales":189.95,"oos":1476.93,"cs":0.0,"new":null},{"m":"2026-04","bal":187,"units":43,"sales":1719.59,"oos":272.9,"cs":120.03,"new":8},{"m":"2026-05","bal":187,"units":47,"sales":1879.53,"oos":0.0,"cs":199.98,"new":10},{"m":"2026-06","bal":195,"units":41,"sales":1619.6,"oos":0.0,"cs":319.87,"new":13},{"m":"2026-07","bal":197,"units":57,"sales":2120.17,"oos":0.0,"cs":199.93,"new":9},{"m":"2026-08","bal":199,"units":67,"sales":2572.74,"oos":0.0,"cs":359.93,"new":15},{"m":"2026-09","bal":197,"units":56,"sales":2239.44,"oos":0.0,"cs":40.09,"new":6}]},"B073SBL9KM":{"brand":"VALI","name":"VALI Neuro Force Brain Booster Supplement for Focus, Memory, Clarit\u2026","rows":[{"m":"2025-04","bal":5,"units":1,"sales":24.49,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-05","bal":6,"units":6,"sales":146.94,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-06","bal":8,"units":3,"sales":73.47,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-07","bal":14,"units":14,"sales":342.86,"oos":0.0,"cs":48.99,"new":null},{"m":"2025-08","bal":14,"units":2,"sales":48.98,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-09","bal":18,"units":14,"sales":342.85,"oos":0.0,"cs":24.48,"new":null},{"m":"2025-10","bal":24,"units":13,"sales":318.37,"oos":0.0,"cs":73.48,"new":7},{"m":"2025-11","bal":28,"units":11,"sales":269.39,"oos":0.0,"cs":0.0,"new":2},{"m":"2025-12","bal":25,"units":1,"sales":24.49,"oos":0.0,"cs":0.0,"new":2},{"m":"2026-01","bal":24,"units":15,"sales":367.35,"oos":0.0,"cs":24.5,"new":3},{"m":"2026-02","bal":22,"units":14,"sales":342.86,"oos":0.0,"cs":0.0,"new":null},{"m":"2026-03","bal":25,"units":12,"sales":293.88,"oos":0.0,"cs":0.0,"new":4},{"m":"2026-04","bal":22,"units":10,"sales":297.4,"oos":0.0,"cs":0.0,"new":null},{"m":"2026-05","bal":23,"units":15,"sales":507.35,"oos":0.0,"cs":0.0,"new":3},{"m":"2026-06","bal":21,"units":15,"sales":524.85,"oos":0.0,"cs":0.0,"new":null},{"m":"2026-07","bal":20,"units":9,"sales":314.91,"oos":0.0,"cs":0.0,"new":null},{"m":"2026-08","bal":19,"units":8,"sales":279.92,"oos":0.0,"cs":0.0,"new":null},{"m":"2026-09","bal":22,"units":20,"sales":682.3,"oos":0.0,"cs":0.0,"new":5}]},"B074G3SYTT":{"brand":"VALI","name":"VALI Caffeine 50mg & L Theanine 100mg - Caffeine Pills & L-Theanine\u2026","rows":[{"m":"2025-04","bal":1271,"units":369,"sales":7745.28,"oos":0.0,"cs":1469.28,"new":null},{"m":"2025-05","bal":1295,"units":367,"sales":7703.26,"oos":0.0,"cs":1049.18,"new":null},{"m":"2025-06","bal":1278,"units":340,"sales":7136.57,"oos":0.0,"cs":923.47,"new":null},{"m":"2025-07","bal":1301,"units":362,"sales":7598.31,"oos":0.0,"cs":1259.04,"new":null},{"m":"2025-08","bal":1356,"units":413,"sales":8668.82,"oos":0.0,"cs":2014.63,"new":null},{"m":"2025-09","bal":1379,"units":347,"sales":7283.41,"oos":0.0,"cs":1028.42,"new":null},{"m":"2025-10","bal":1387,"units":415,"sales":8710.78,"oos":0.0,"cs":1133.27,"new":121},{"m":"2025-11","bal":1373,"units":359,"sales":7535.35,"oos":0.0,"cs":692.5,"new":87},{"m":"2025-12","bal":1342,"units":5,"sales":104.95,"oos":0.0,"cs":20.99,"new":67},{"m":"2026-01","bal":1338,"units":380,"sales":7888.64,"oos":0.0,"cs":609.0,"new":96},{"m":"2026-02","bal":1350,"units":404,"sales":8364.42,"oos":0.0,"cs":62.73,"new":101},{"m":"2026-03","bal":1359,"units":389,"sales":8018.05,"oos":0.0,"cs":0.0,"new":96},{"m":"2026-04","bal":1326,"units":388,"sales":9274.13,"oos":0.0,"cs":0.0,"new":79},{"m":"2026-05","bal":1310,"units":382,"sales":9711.39,"oos":0.0,"cs":0.0,"new":89},{"m":"2026-06","bal":1304,"units":357,"sales":9070.41,"oos":0.0,"cs":0.0,"new":77},{"m":"2026-07","bal":1299,"units":349,"sales":8940.42,"oos":0.0,"cs":0.0,"new":87},{"m":"2026-08","bal":1320,"units":377,"sales":9629.21,"oos":0.0,"cs":0.0,"new":131},{"m":"2026-09","bal":1346,"units":388,"sales":10032.1,"oos":0.0,"cs":0.0,"new":127}]},"B076VX76XW":{"brand":"VALI","name":"VALI D-Mannose 1000mg Urinary Tract Health Formula. Organic Cranber\u2026","rows":[{"m":"2025-04","bal":1570,"units":737,"sales":15469.62,"oos":0.0,"cs":546.08,"new":null},{"m":"2025-05","bal":1530,"units":738,"sales":15490.6,"oos":0.0,"cs":398.11,"new":null},{"m":"2025-06","bal":1506,"units":760,"sales":15952.39,"oos":0.0,"cs":483.36,"new":null},{"m":"2025-07","bal":1480,"units":749,"sales":15721.45,"oos":0.0,"cs":399.32,"new":null},{"m":"2025-08","bal":1469,"units":703,"sales":14755.97,"oos":0.0,"cs":230.19,"new":null},{"m":"2025-09","bal":1452,"units":752,"sales":15784.42,"oos":0.0,"cs":524.04,"new":null},{"m":"2025-10","bal":1431,"units":694,"sales":14567.05,"oos":0.0,"cs":314.65,"new":37},{"m":"2025-11","bal":1396,"units":698,"sales":14651.02,"oos":0.0,"cs":189.0,"new":34},{"m":"2025-12","bal":1375,"units":12,"sales":241.38,"oos":0.0,"cs":0.0,"new":40},{"m":"2026-01","bal":1345,"units":721,"sales":15007.76,"oos":0.0,"cs":189.1,"new":45},{"m":"2026-02","bal":1315,"units":666,"sales":13881.32,"oos":0.0,"cs":62.47,"new":24},{"m":"2026-03","bal":1301,"units":730,"sales":15210.68,"oos":0.0,"cs":0.0,"new":30},{"m":"2026-04","bal":1262,"units":653,"sales":15435.61,"oos":0.0,"cs":0.0,"new":23},{"m":"2026-05","bal":1229,"units":638,"sales":16503.59,"oos":0.0,"cs":0.0,"new":20},{"m":"2026-06","bal":1193,"units":643,"sales":16512.2,"oos":0.0,"cs":0.0,"new":31},{"m":"2026-07","bal":1171,"units":612,"sales":15793.13,"oos":0.0,"cs":0.0,"new":51},{"m":"2026-08","bal":1158,"units":626,"sales":16061.7,"oos":0.0,"cs":0.0,"new":53},{"m":"2026-09","bal":1152,"units":633,"sales":16282.63,"oos":0.0,"cs":0.0,"new":44}]},"B07D6SYCZ9":{"brand":"Viter Energy","name":"Viter Energy Caffeine Mints 40mg, Sugar Free, Peppermint, 20ct, 6 Pack","rows":[{"m":"2025-04","bal":26,"units":27,"sales":593.72,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-05","bal":29,"units":16,"sales":351.84,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-06","bal":35,"units":20,"sales":439.8,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-07","bal":39,"units":26,"sales":571.74,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-08","bal":50,"units":35,"sales":769.65,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-09","bal":56,"units":28,"sales":615.71,"oos":0.0,"cs":65.94,"new":null},{"m":"2025-10","bal":71,"units":31,"sales":681.68,"oos":0.0,"cs":175.94,"new":14},{"m":"2025-11","bal":78,"units":28,"sales":615.72,"oos":0.0,"cs":109.97,"new":9},{"m":"2025-12","bal":84,"units":1,"sales":21.99,"oos":0.0,"cs":0.0,"new":16},{"m":"2026-01","bal":97,"units":46,"sales":967.54,"oos":0.0,"cs":87.95,"new":17},{"m":"2026-02","bal":125,"units":69,"sales":1484.29,"oos":0.0,"cs":175.89,"new":36},{"m":"2026-03","bal":115,"units":38,"sales":824.62,"oos":23.31,"cs":87.99,"new":7},{"m":"2026-04","bal":102,"units":0,"sales":0.0,"oos":397.76,"cs":0.0,"new":null},{"m":"2026-05","bal":94,"units":21,"sales":524.79,"oos":421.2,"cs":74.99,"new":5},{"m":"2026-06","bal":101,"units":46,"sales":1132.87,"oos":0.0,"cs":149.99,"new":12},{"m":"2026-07","bal":111,"units":43,"sales":1048.31,"oos":0.0,"cs":274.87,"new":16},{"m":"2026-08","bal":129,"units":52,"sales":1299.45,"oos":0.0,"cs":399.84,"new":24},{"m":"2026-09","bal":133,"units":47,"sales":1174.52,"oos":0.0,"cs":50.03,"new":18}]},"B07D6T3HVY":{"brand":"Viter Energy","name":"Viter Energy Caffeine Mints 40mg, Sugar Free, Peppermint, 8oz Bulk Bag","rows":[{"m":"2025-04","bal":18,"units":4,"sales":151.96,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-05","bal":31,"units":17,"sales":645.85,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-06","bal":39,"units":17,"sales":645.84,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-07","bal":49,"units":10,"sales":379.9,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-08","bal":58,"units":29,"sales":1101.72,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-09","bal":67,"units":22,"sales":835.78,"oos":0.0,"cs":114.0,"new":null},{"m":"2025-10","bal":71,"units":28,"sales":1063.73,"oos":0.0,"cs":152.01,"new":11},{"m":"2025-11","bal":77,"units":28,"sales":1063.73,"oos":0.0,"cs":37.98,"new":14},{"m":"2025-12","bal":82,"units":2,"sales":75.98,"oos":0.0,"cs":37.99,"new":7},{"m":"2026-01","bal":83,"units":33,"sales":1234.68,"oos":0.0,"cs":0.0,"new":7},{"m":"2026-02","bal":76,"units":3,"sales":113.97,"oos":542.21,"cs":0.0,"new":null},{"m":"2026-03","bal":74,"units":16,"sales":607.84,"oos":427.37,"cs":0.0,"new":4},{"m":"2026-04","bal":76,"units":16,"sales":637.84,"oos":39.07,"cs":79.96,"new":6},{"m":"2026-05","bal":83,"units":23,"sales":919.79,"oos":0.0,"cs":119.94,"new":11},{"m":"2026-06","bal":90,"units":31,"sales":1219.71,"oos":0.0,"cs":319.93,"new":17},{"m":"2026-07","bal":91,"units":33,"sales":1267.69,"oos":0.0,"cs":119.92,"new":11},{"m":"2026-08","bal":106,"units":45,"sales":1772.92,"oos":0.0,"cs":279.94,"new":22},{"m":"2026-09","bal":121,"units":53,"sales":2079.49,"oos":0.0,"cs":39.93,"new":17}]},"B07D6TF38N":{"brand":"Viter Energy","name":"Viter Energy Caffeine Mints 40mg, Sugar Free, Chocolate Mint, 8oz B\u2026","rows":[{"m":"2025-04","bal":10,"units":1,"sales":37.99,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-05","bal":10,"units":1,"sales":37.99,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-06","bal":10,"units":1,"sales":37.99,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-07","bal":10,"units":4,"sales":151.96,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-08","bal":10,"units":2,"sales":75.98,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-09","bal":10,"units":2,"sales":75.98,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-10","bal":9,"units":3,"sales":113.97,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-11","bal":9,"units":4,"sales":151.96,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-12","bal":9,"units":0,"sales":0.0,"oos":0.0,"cs":0.0,"new":null},{"m":"2026-01","bal":18,"units":5,"sales":189.95,"oos":0.0,"cs":0.0,"new":6},{"m":"2026-02","bal":40,"units":28,"sales":1063.72,"oos":0.0,"cs":0.0,"new":23},{"m":"2026-03","bal":41,"units":20,"sales":759.8,"oos":78.98,"cs":0.0,"new":3},{"m":"2026-04","bal":51,"units":15,"sales":599.85,"oos":39.5,"cs":0.0,"new":9},{"m":"2026-05","bal":62,"units":28,"sales":1119.73,"oos":0.0,"cs":0.0,"new":13},{"m":"2026-06","bal":80,"units":43,"sales":1699.63,"oos":0.0,"cs":359.98,"new":24},{"m":"2026-07","bal":101,"units":40,"sales":1535.67,"oos":0.0,"cs":235.88,"new":29},{"m":"2026-08","bal":121,"units":63,"sales":2479.4,"oos":0.0,"cs":679.85,"new":28},{"m":"2026-09","bal":135,"units":62,"sales":2459.39,"oos":0.0,"cs":79.93,"new":31}]},"B07D6TG8DR":{"brand":"Viter Energy","name":"Viter Energy 40mg Caffeine Mints - Sugar Free, B Vitamins, Vegan, B\u2026","rows":[{"m":"2025-04","bal":158,"units":51,"sales":1937.53,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-05","bal":178,"units":55,"sales":2089.48,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-06","bal":180,"units":53,"sales":2013.48,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-07","bal":174,"units":43,"sales":1633.58,"oos":37.98,"cs":0.0,"new":null},{"m":"2025-08","bal":169,"units":44,"sales":1671.56,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-09","bal":179,"units":56,"sales":2127.45,"oos":0.0,"cs":189.98,"new":null},{"m":"2025-10","bal":181,"units":58,"sales":2203.43,"oos":0.0,"cs":76.02,"new":9},{"m":"2025-11","bal":186,"units":38,"sales":1443.65,"oos":0.0,"cs":37.97,"new":11},{"m":"2025-12","bal":187,"units":4,"sales":132.97,"oos":0.0,"cs":37.99,"new":18},{"m":"2026-01","bal":180,"units":24,"sales":911.77,"oos":231.48,"cs":0.0,"new":null},{"m":"2026-02","bal":169,"units":0,"sales":0.0,"oos":1780.29,"cs":0.0,"new":null},{"m":"2026-03","bal":112,"units":0,"sales":0.0,"oos":738.16,"cs":0.0,"new":null},{"m":"2026-04","bal":111,"units":24,"sales":959.76,"oos":0.0,"cs":199.92,"new":13},{"m":"2026-05","bal":113,"units":31,"sales":1239.69,"oos":0.0,"cs":120.0,"new":8},{"m":"2026-06","bal":124,"units":38,"sales":1499.63,"oos":0.0,"cs":79.93,"new":13},{"m":"2026-07","bal":133,"units":36,"sales":1375.7,"oos":0.0,"cs":119.96,"new":25},{"m":"2026-08","bal":146,"units":55,"sales":2179.47,"oos":0.0,"cs":319.95,"new":21},{"m":"2026-09","bal":147,"units":36,"sales":1439.64,"oos":39.04,"cs":40.02,"new":7}]},"B07D6THF78":{"brand":"Viter Energy","name":"Viter Energy Caffeine Mints 40mg, Sugar Free, Cinnamon, 20ct, 6 Pack","rows":[{"m":"2025-04","bal":142,"units":41,"sales":901.59,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-05","bal":148,"units":40,"sales":879.6,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-06","bal":155,"units":42,"sales":923.57,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-07","bal":150,"units":44,"sales":967.56,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-08","bal":149,"units":45,"sales":989.55,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-09","bal":156,"units":37,"sales":813.63,"oos":0.0,"cs":87.95,"new":null},{"m":"2025-10","bal":164,"units":55,"sales":1209.45,"oos":0.0,"cs":153.96,"new":17},{"m":"2025-11","bal":161,"units":48,"sales":1055.52,"oos":0.0,"cs":87.92,"new":9},{"m":"2025-12","bal":167,"units":2,"sales":43.98,"oos":0.0,"cs":0.0,"new":13},{"m":"2026-01","bal":177,"units":68,"sales":1462.31,"oos":0.0,"cs":88.03,"new":25},{"m":"2026-02","bal":184,"units":76,"sales":1616.24,"oos":0.0,"cs":153.87,"new":22},{"m":"2026-03","bal":174,"units":29,"sales":637.71,"oos":46.03,"cs":22.0,"new":null},{"m":"2026-04","bal":160,"units":22,"sales":483.78,"oos":323.05,"cs":0.0,"new":2},{"m":"2026-05","bal":157,"units":36,"sales":896.63,"oos":254.1,"cs":25.01,"new":7},{"m":"2026-06","bal":161,"units":46,"sales":1137.04,"oos":0.0,"cs":149.98,"new":14},{"m":"2026-07","bal":163,"units":40,"sales":952.1,"oos":0.0,"cs":99.97,"new":11},{"m":"2026-08","bal":161,"units":44,"sales":1062.05,"oos":0.0,"cs":124.9,"new":11},{"m":"2026-09","bal":169,"units":53,"sales":1299.47,"oos":0.0,"cs":0.0,"new":17}]},"B07D6TZXFK":{"brand":"Viter Energy","name":"Viter Energy Caffeine Mints 40mg, Sugar Free, Chocolate Mint, 20ct,\u2026","rows":[{"m":"2025-04","bal":171,"units":42,"sales":923.58,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-05","bal":179,"units":46,"sales":1011.53,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-06","bal":176,"units":33,"sales":725.66,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-07","bal":179,"units":52,"sales":1143.47,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-08","bal":196,"units":44,"sales":967.55,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-09","bal":202,"units":49,"sales":1077.51,"oos":0.0,"cs":65.94,"new":null},{"m":"2025-10","bal":211,"units":63,"sales":1385.35,"oos":0.0,"cs":43.92,"new":16},{"m":"2025-11","bal":209,"units":49,"sales":1077.5,"oos":0.0,"cs":87.92,"new":8},{"m":"2025-12","bal":219,"units":2,"sales":43.98,"oos":0.0,"cs":0.0,"new":19},{"m":"2026-01","bal":213,"units":55,"sales":1176.45,"oos":0.0,"cs":66.0,"new":12},{"m":"2026-02","bal":206,"units":11,"sales":241.89,"oos":405.67,"cs":0.0,"new":null},{"m":"2026-03","bal":191,"units":0,"sales":0.0,"oos":842.12,"cs":0.0,"new":null},{"m":"2026-04","bal":131,"units":0,"sales":0.0,"oos":274.98,"cs":0.0,"new":null},{"m":"2026-05","bal":117,"units":7,"sales":174.93,"oos":0.0,"cs":0.0,"new":7},{"m":"2026-06","bal":119,"units":23,"sales":574.77,"oos":0.0,"cs":99.95,"new":6},{"m":"2026-07","bal":115,"units":28,"sales":678.22,"oos":0.0,"cs":71.96,"new":12},{"m":"2026-08","bal":128,"units":31,"sales":774.69,"oos":0.0,"cs":149.9,"new":19},{"m":"2026-09","bal":125,"units":21,"sales":524.79,"oos":0.0,"cs":49.96,"new":12}]},"B07FP1HSNN":{"brand":"VALI","name":"VALI Electrolyte Salts Plus 40mg Caffeine. Rapid Oral Rehydration R\u2026","rows":[{"m":"2025-04","bal":57,"units":0,"sales":0.0,"oos":275.88,"cs":0.0,"new":null},{"m":"2025-05","bal":35,"units":0,"sales":0.0,"oos":22.99,"cs":0.0,"new":null},{"m":"2025-06","bal":25,"units":0,"sales":0.0,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-07","bal":13,"units":0,"sales":0.0,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-08","bal":11,"units":0,"sales":0.0,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-09","bal":6,"units":0,"sales":0.0,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-10","bal":4,"units":0,"sales":0.0,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-11","bal":3,"units":0,"sales":0.0,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-12","bal":3,"units":0,"sales":0.0,"oos":0.0,"cs":0.0,"new":null},{"m":"2026-01","bal":2,"units":0,"sales":0.0,"oos":0.0,"cs":0.0,"new":null},{"m":"2026-02","bal":7,"units":3,"sales":74.97,"oos":0.0,"cs":0.0,"new":3},{"m":"2026-03","bal":10,"units":4,"sales":99.96,"oos":0.0,"cs":0.0,"new":2},{"m":"2026-04","bal":14,"units":7,"sales":174.93,"oos":0.0,"cs":0.0,"new":4},{"m":"2026-05","bal":14,"units":2,"sales":49.98,"oos":0.0,"cs":0.0,"new":2},{"m":"2026-06","bal":18,"units":6,"sales":149.94,"oos":0.0,"cs":0.0,"new":4},{"m":"2026-07","bal":20,"units":5,"sales":124.94,"oos":0.0,"cs":0.0,"new":6},{"m":"2026-08","bal":24,"units":8,"sales":199.92,"oos":0.0,"cs":0.0,"new":5},{"m":"2026-09","bal":24,"units":7,"sales":174.93,"oos":0.0,"cs":0.0,"new":6}]},"B07G4L72NS":{"brand":"Viter Energy","name":"Viter Energy Caffeine Mints 40mg Variety Pack, Sugar Free, 5 Tins,\u2026","rows":[{"m":"2025-04","bal":482,"units":135,"sales":2833.65,"oos":0.0,"cs":650.61,"new":null},{"m":"2025-05","bal":492,"units":138,"sales":2896.58,"oos":0.0,"cs":524.86,"new":null},{"m":"2025-06","bal":504,"units":122,"sales":2560.76,"oos":0.0,"cs":335.72,"new":null},{"m":"2025-07","bal":494,"units":143,"sales":3001.55,"oos":0.0,"cs":482.65,"new":null},{"m":"2025-08","bal":487,"units":116,"sales":2434.84,"oos":0.0,"cs":335.76,"new":null},{"m":"2025-09","bal":493,"units":129,"sales":2707.69,"oos":0.0,"cs":377.72,"new":null},{"m":"2025-10","bal":494,"units":133,"sales":2791.64,"oos":0.0,"cs":440.8,"new":38},{"m":"2025-11","bal":498,"units":122,"sales":2560.78,"oos":0.0,"cs":419.71,"new":33},{"m":"2025-12","bal":489,"units":2,"sales":41.98,"oos":0.0,"cs":0.0,"new":17},{"m":"2026-01","bal":489,"units":145,"sales":2935.05,"oos":0.0,"cs":230.99,"new":39},{"m":"2026-02","bal":487,"units":157,"sales":3225.36,"oos":0.0,"cs":314.8,"new":37},{"m":"2026-03","bal":498,"units":182,"sales":3746.66,"oos":0.0,"cs":272.76,"new":42},{"m":"2026-04","bal":473,"units":157,"sales":3731.42,"oos":0.0,"cs":20.9,"new":13},{"m":"2026-05","bal":429,"units":7,"sales":181.93,"oos":1731.34,"cs":0.0,"new":null},{"m":"2026-06","bal":426,"units":142,"sales":2994.87,"oos":433.0,"cs":0.0,"new":39},{"m":"2026-07","bal":437,"units":124,"sales":2642.44,"oos":0.0,"cs":0.0,"new":32},{"m":"2026-08","bal":474,"units":149,"sales":3265.5,"oos":0.0,"cs":0.0,"new":61},{"m":"2026-09","bal":491,"units":137,"sales":2990.62,"oos":0.0,"cs":0.0,"new":43}]},"B08QNKH16X":{"brand":"Viter Energy","name":"Viter Energy Extra Strength Caffeine Mints 80mg, Wintergreen, 8oz B\u2026","rows":[{"m":"2025-04","bal":20,"units":12,"sales":551.88,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-05","bal":34,"units":15,"sales":689.87,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-06","bal":47,"units":13,"sales":597.88,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-07","bal":62,"units":23,"sales":1057.77,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-08","bal":67,"units":20,"sales":919.8,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-09","bal":76,"units":25,"sales":1149.75,"oos":0.0,"cs":137.97,"new":null},{"m":"2025-10","bal":90,"units":33,"sales":1517.68,"oos":0.0,"cs":229.93,"new":14},{"m":"2025-11","bal":90,"units":21,"sales":965.79,"oos":0.0,"cs":45.97,"new":6},{"m":"2025-12","bal":83,"units":0,"sales":0.0,"oos":45.99,"cs":0.0,"new":null},{"m":"2026-01","bal":91,"units":19,"sales":804.84,"oos":321.93,"cs":183.99,"new":15},{"m":"2026-02","bal":94,"units":27,"sales":1241.73,"oos":91.98,"cs":367.88,"new":9},{"m":"2026-03","bal":106,"units":34,"sales":1563.66,"oos":183.96,"cs":230.02,"new":18},{"m":"2026-04","bal":116,"units":41,"sales":1885.59,"oos":0.0,"cs":321.87,"new":13},{"m":"2026-05","bal":118,"units":24,"sales":1103.76,"oos":0.0,"cs":184.0,"new":10},{"m":"2026-06","bal":120,"units":30,"sales":1333.72,"oos":0.0,"cs":229.93,"new":9},{"m":"2026-07","bal":126,"units":41,"sales":1724.68,"oos":0.0,"cs":137.97,"new":13},{"m":"2026-08","bal":140,"units":48,"sales":2161.56,"oos":0.0,"cs":597.89,"new":24},{"m":"2026-09","bal":145,"units":35,"sales":1563.67,"oos":0.0,"cs":45.97,"new":13}]},"B08QNLBPFG":{"brand":"Viter Energy","name":"Viter Energy Extra Strength Caffeine Mints 80mg, Peppermint, 8oz Bu\u2026","rows":[{"m":"2025-04","bal":221,"units":66,"sales":3035.34,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-05","bal":231,"units":53,"sales":2437.49,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-06","bal":233,"units":45,"sales":2069.56,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-07","bal":237,"units":57,"sales":2621.43,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-08","bal":234,"units":52,"sales":2391.48,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-09","bal":235,"units":48,"sales":2207.53,"oos":0.0,"cs":183.89,"new":null},{"m":"2025-10","bal":240,"units":61,"sales":2805.39,"oos":0.0,"cs":92.02,"new":19},{"m":"2025-11","bal":244,"units":45,"sales":2069.55,"oos":0.0,"cs":229.93,"new":16},{"m":"2025-12","bal":258,"units":0,"sales":0.0,"oos":0.0,"cs":0.0,"new":19},{"m":"2026-01","bal":257,"units":54,"sales":2437.49,"oos":0.0,"cs":184.03,"new":13},{"m":"2026-02","bal":237,"units":6,"sales":275.94,"oos":965.79,"cs":0.0,"new":null},{"m":"2026-03","bal":232,"units":45,"sales":2069.55,"oos":0.0,"cs":91.89,"new":9},{"m":"2026-04","bal":222,"units":51,"sales":2345.5,"oos":0.0,"cs":183.89,"new":13},{"m":"2026-05","bal":222,"units":39,"sales":1793.62,"oos":0.0,"cs":184.03,"new":7},{"m":"2026-06","bal":228,"units":51,"sales":2299.52,"oos":0.0,"cs":91.98,"new":16},{"m":"2026-07","bal":237,"units":62,"sales":2782.44,"oos":0.0,"cs":276.02,"new":20},{"m":"2026-08","bal":248,"units":73,"sales":3311.32,"oos":0.0,"cs":689.75,"new":31},{"m":"2026-09","bal":248,"units":58,"sales":2667.43,"oos":0.0,"cs":92.03,"new":18}]},"B0DCTWLM73":{"brand":"Viter Energy","name":"Viter Energy Extra Strength Caffeine Mints 80mg, Peppermint, 30 Sac\u2026","rows":[{"m":"2025-04","bal":60,"units":26,"sales":727.68,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-05","bal":71,"units":26,"sales":727.73,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-06","bal":72,"units":22,"sales":615.78,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-07","bal":64,"units":20,"sales":559.8,"oos":0.0,"cs":55.98,"new":null},{"m":"2025-08","bal":68,"units":21,"sales":587.79,"oos":0.0,"cs":84.0,"new":null},{"m":"2025-09","bal":70,"units":22,"sales":615.78,"oos":0.0,"cs":83.99,"new":null},{"m":"2025-10","bal":73,"units":20,"sales":559.8,"oos":0.0,"cs":167.94,"new":9},{"m":"2025-11","bal":73,"units":12,"sales":335.88,"oos":0.0,"cs":0.0,"new":7},{"m":"2025-12","bal":77,"units":0,"sales":0.0,"oos":0.0,"cs":0.0,"new":12},{"m":"2026-01","bal":73,"units":23,"sales":629.77,"oos":0.0,"cs":27.96,"new":3},{"m":"2026-02","bal":73,"units":29,"sales":793.04,"oos":0.0,"cs":27.99,"new":5},{"m":"2026-03","bal":81,"units":26,"sales":727.74,"oos":0.0,"cs":0.0,"new":7},{"m":"2026-04","bal":94,"units":40,"sales":1077.6,"oos":0.0,"cs":279.85,"new":24},{"m":"2026-05","bal":92,"units":28,"sales":741.72,"oos":0.0,"cs":27.96,"new":2},{"m":"2026-06","bal":99,"units":35,"sales":923.65,"oos":0.0,"cs":111.95,"new":7},{"m":"2026-07","bal":103,"units":31,"sales":825.66,"oos":0.0,"cs":223.92,"new":12},{"m":"2026-08","bal":107,"units":34,"sales":951.66,"oos":0.0,"cs":111.92,"new":14},{"m":"2026-09","bal":107,"units":26,"sales":727.74,"oos":0.0,"cs":0.0,"new":9}]},"B0DCTXJXDG":{"brand":"Viter Energy","name":"Viter Energy Extra Strength Caffeine Mints 80mg, Wintergreen, 30 Sa\u2026","rows":[{"m":"2025-04","bal":43,"units":15,"sales":419.85,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-05","bal":43,"units":16,"sales":447.84,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-06","bal":41,"units":12,"sales":335.87,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-07","bal":52,"units":25,"sales":699.75,"oos":0.0,"cs":83.97,"new":null},{"m":"2025-08","bal":68,"units":21,"sales":587.78,"oos":0.0,"cs":195.91,"new":null},{"m":"2025-09","bal":71,"units":30,"sales":839.69,"oos":0.0,"cs":279.87,"new":null},{"m":"2025-10","bal":70,"units":16,"sales":447.84,"oos":0.0,"cs":55.98,"new":6},{"m":"2025-11","bal":67,"units":15,"sales":419.84,"oos":0.0,"cs":0.0,"new":5},{"m":"2025-12","bal":63,"units":0,"sales":0.0,"oos":27.99,"cs":0.0,"new":null},{"m":"2026-01","bal":67,"units":13,"sales":335.87,"oos":195.93,"cs":111.95,"new":6},{"m":"2026-02","bal":72,"units":26,"sales":713.74,"oos":0.0,"cs":0.0,"new":7},{"m":"2026-03","bal":71,"units":24,"sales":657.76,"oos":0.0,"cs":0.0,"new":9},{"m":"2026-04","bal":73,"units":24,"sales":657.76,"oos":0.0,"cs":55.98,"new":3},{"m":"2026-05","bal":75,"units":24,"sales":639.08,"oos":0.0,"cs":83.98,"new":6},{"m":"2026-06","bal":73,"units":19,"sales":517.8,"oos":0.0,"cs":28.01,"new":6},{"m":"2026-07","bal":71,"units":18,"sales":489.81,"oos":0.0,"cs":27.97,"new":4},{"m":"2026-08","bal":71,"units":21,"sales":587.79,"oos":0.0,"cs":84.0,"new":5},{"m":"2026-09","bal":71,"units":20,"sales":559.8,"oos":0.0,"cs":0.0,"new":3}]},"B0F3PH8FK3":{"brand":"Viter Energy","name":"Viter Energy Caffeine Gum 60mg, Sugar Free, Peppermint, 30 Pieces","rows":[{"m":"2025-04","bal":0,"units":0,"sales":0.0,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-05","bal":0,"units":0,"sales":0.0,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-06","bal":0,"units":0,"sales":0.0,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-07","bal":55,"units":56,"sales":559.45,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-08","bal":85,"units":71,"sales":709.34,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-09","bal":65,"units":13,"sales":129.87,"oos":39.96,"cs":0.0,"new":null},{"m":"2025-10","bal":82,"units":47,"sales":469.59,"oos":0.0,"cs":0.0,"new":34},{"m":"2025-11","bal":84,"units":46,"sales":459.59,"oos":0.0,"cs":0.0,"new":19},{"m":"2025-12","bal":77,"units":1,"sales":9.99,"oos":0.0,"cs":0.0,"new":19},{"m":"2026-01","bal":83,"units":48,"sales":457.91,"oos":0.0,"cs":0.0,"new":27},{"m":"2026-02","bal":88,"units":50,"sales":476.25,"oos":0.0,"cs":0.0,"new":25},{"m":"2026-03","bal":93,"units":60,"sales":587.79,"oos":0.0,"cs":0.0,"new":33},{"m":"2026-04","bal":115,"units":79,"sales":757.63,"oos":0.0,"cs":0.0,"new":46},{"m":"2026-05","bal":132,"units":96,"sales":919.15,"oos":0.0,"cs":0.0,"new":42},{"m":"2026-06","bal":171,"units":120,"sales":1162.24,"oos":0.0,"cs":0.0,"new":87},{"m":"2026-07","bal":196,"units":133,"sales":1263.87,"oos":0.0,"cs":0.0,"new":72},{"m":"2026-08","bal":203,"units":94,"sales":924.12,"oos":9.99,"cs":0.0,"new":51},{"m":"2026-09","bal":206,"units":128,"sales":1263.76,"oos":0.0,"cs":0.0,"new":37}]},"B0F3Q48STT":{"brand":"Viter Energy","name":"Viter Energy Caffeine Gum 60mg, Sugar Free, Peppermint, 180ct Bulk Bag","rows":[{"m":"2025-04","bal":0,"units":0,"sales":0.0,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-05","bal":0,"units":0,"sales":0.0,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-06","bal":0,"units":0,"sales":0.0,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-07","bal":7,"units":5,"sales":249.97,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-08","bal":16,"units":11,"sales":549.92,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-09","bal":20,"units":12,"sales":599.9,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-10","bal":21,"units":11,"sales":549.89,"oos":0.0,"cs":0.0,"new":7},{"m":"2025-11","bal":20,"units":5,"sales":249.95,"oos":0.0,"cs":0.0,"new":2},{"m":"2025-12","bal":20,"units":0,"sales":0.0,"oos":0.0,"cs":0.0,"new":4},{"m":"2026-01","bal":22,"units":8,"sales":374.93,"oos":0.0,"cs":0.0,"new":9},{"m":"2026-02","bal":27,"units":12,"sales":599.88,"oos":0.0,"cs":0.0,"new":10},{"m":"2026-03","bal":26,"units":7,"sales":349.93,"oos":0.0,"cs":0.0,"new":2},{"m":"2026-04","bal":30,"units":10,"sales":399.92,"oos":0.0,"cs":0.0,"new":5},{"m":"2026-05","bal":31,"units":13,"sales":499.9,"oos":0.0,"cs":0.0,"new":5},{"m":"2026-06","bal":29,"units":18,"sales":824.85,"oos":0.0,"cs":0.0,"new":15},{"m":"2026-07","bal":30,"units":13,"sales":574.91,"oos":0.0,"cs":0.0,"new":5},{"m":"2026-08","bal":34,"units":9,"sales":366.61,"oos":0.0,"cs":0.0,"new":13},{"m":"2026-09","bal":34,"units":16,"sales":799.84,"oos":0.0,"cs":0.0,"new":8}]},"B0F3Q78H67":{"brand":"Viter Energy","name":"Viter Energy Caffeine Gum 60mg, Sugar Free, Peppermint, 3 Pouches,\u2026","rows":[{"m":"2025-04","bal":0,"units":0,"sales":0.0,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-05","bal":0,"units":0,"sales":0.0,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-06","bal":0,"units":0,"sales":0.0,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-07","bal":4,"units":3,"sales":83.97,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-08","bal":14,"units":13,"sales":363.87,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-09","bal":21,"units":12,"sales":335.87,"oos":0.0,"cs":0.0,"new":null},{"m":"2025-10","bal":17,"units":7,"sales":195.92,"oos":0.0,"cs":0.0,"new":3},{"m":"2025-11","bal":20,"units":10,"sales":279.89,"oos":0.0,"cs":0.0,"new":7},{"m":"2025-12","bal":17,"units":1,"sales":27.99,"oos":0.0,"cs":0.0,"new":3},{"m":"2026-01","bal":20,"units":11,"sales":265.88,"oos":0.0,"cs":0.0,"new":7},{"m":"2026-02","bal":25,"units":15,"sales":405.83,"oos":0.0,"cs":0.0,"new":11},{"m":"2026-03","bal":25,"units":13,"sales":331.2,"oos":0.0,"cs":0.0,"new":7},{"m":"2026-04","bal":27,"units":14,"sales":345.19,"oos":0.0,"cs":0.0,"new":8},{"m":"2026-05","bal":28,"units":18,"sales":457.14,"oos":0.0,"cs":0.0,"new":11},{"m":"2026-06","bal":29,"units":17,"sales":457.17,"oos":0.0,"cs":0.0,"new":6},{"m":"2026-07","bal":30,"units":13,"sales":370.86,"oos":0.0,"cs":0.0,"new":2},{"m":"2026-08","bal":31,"units":27,"sales":779.73,"oos":0.0,"cs":0.0,"new":11},{"m":"2026-09","bal":34,"units":17,"sales":509.83,"oos":0.0,"cs":0.0,"new":8}]}};
+const WIN_START = "2025-10", WIN_END = "2026-09", CAP = 24, DPM = 30.4;
+const A = '#3b7ff5', G = '#22c55e', AM = '#f59e0b', R = '#ef4444', C = '#22d3ee', P = '#a78bfa', MU = '#7a8aaa';
+if (window.Chart) { Chart.defaults.color = MU; Chart.defaults.borderColor = '#252f45'; Chart.defaults.font.family = "'Inter','Segoe UI',system-ui,sans-serif"; Chart.defaults.font.size = 11; }
+
+const $ = s => document.querySelector(s);
+const fmt = {
+  n: v => Math.round(v).toLocaleString("en-US"),
+  usd: v => "$" + v.toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2}),
+  usd0: v => "$" + Math.round(v).toLocaleString("en-US"),
+  pct: v => (v * 100).toFixed(1) + "%",
+  mon: m => new Date(m + "-01T00:00:00").toLocaleString("en-US", {month: "short", year: "2-digit"}),
+};
+const sum = (arr, k) => arr.reduce((a, r) => a + (r[k] || 0), 0);
+
+// ---------- per-product metrics (same method as account level)
+function aggRows(keys) {
+  const months = ASINS[keys[0]].rows.map(r => r.m);
+  return months.map((m, i) => {
+    const o = {m, bal: 0, units: 0, sales: 0, oos: 0, cs: 0, new: null};
+    keys.forEach(k => { const r = ASINS[k].rows[i]; o.bal += r.bal; o.units += r.units; o.sales += r.sales; o.oos += r.oos; o.cs += r.cs; if (r.new != null) o.new = (o.new || 0) + r.new; });
+    if (m >= WIN_START && o.new == null) o.new = 0;
+    return o;
+  });
+}
+function prodMetrics(rows) {
+  const i0 = rows.findIndex(r => r.m === WIN_START);
+  const w = rows.slice(i0).filter(r => r.m <= WIN_END);
+  const wy = w.filter(r => r.m !== "2025-12");
+  const startSum = w.reduce((a, r, j) => a + rows[i0 + j - 1].bal, 0);
+  const newSum = w.reduce((a, r) => a + (r.new || 0), 0);
+  const canc = newSum - (w[w.length - 1].bal - rows[i0 - 1].bal);
+  const churn = startSum > 0 ? Math.max(canc, 0) / startSum : 0;
+  const life = churn > 0 ? Math.min(1 / churn, CAP) : CAP;
+  const balY = sum(wy, "bal"), unitsPerSub = balY ? sum(wy, "units") / balY : 0;
+  const revPerSub = balY ? sum(wy, "sales") / balY : 0;
+  return {active: w[w.length - 1].bal, newM: newSum / w.length, cancM: canc / w.length, churn, life,
+    days: unitsPerSub ? DPM / unitsPerSub : null, revPerSub, cltv: revPerSub * life,
+    coupon: sum(w, "sales") ? sum(w, "cs") / sum(w, "sales") : 0, oos: sum(w, "oos")};
+}
+
+// ---------- base numbers (independent of assumptions)
+const B = (() => {
+  const w = DATA.filter(r => r.month >= WIN_START && r.month <= WIN_END);
+  const wy = w.filter(r => r.use === "Y");
+  const n = w.length;
+  const churn = sum(w, "canc") / sum(w, "start");
+  const life = churn > 0 ? Math.min(1 / churn, CAP) : CAP;
+  const revPerSub = sum(wy, "sales") / sum(wy, "active");
+  const both = PATH.months.reduce((a, r) => a + r.both, 0), saOnly = PATH.months.reduce((a, r) => a + r.sa_only, 0);
+  const pathTotal = both + saOnly + PATH.dsp_only + PATH.none;
+  const dspReached = both + PATH.dsp_only, saReached = both + saOnly;
+  return {
+    active: w[w.length - 1].active, newM: sum(w, "new") / n, cancM: sum(w, "canc") / n, churn, life,
+    days: DPM / (sum(wy, "units") / sum(wy, "active")), revPerSub, ltvRev: revPerSub * life,
+    dspM: sum(w, "dsp") / n, saM: sum(w, "sa") / n, tofShare: sum(w, "dsp_tof") / sum(w, "dsp"),
+    both, saOnly, pathTotal, dspReached, saReached,
+    dspPerReached: sum(w, "dsp") / dspReached, saPerReached: sum(w, "sa") / saReached,
+  };
+})();
+
+function kpi(label, value, sub, cls = "", tag = "") {
+  return `<div class="kpi-card"><div class="kpi-label">${label}</div><div class="kpi-value ${cls}">${value}</div><div class="kpi-sub">${sub}</div>${tag}</div>`;
+}
+function insight(label, value, desc, cls) {
+  return `<div class="insight-card ${cls}"><div class="il">${label}</div><div class="iv">${value}</div><div class="id">${desc}</div></div>`;
+}
+
+let MAXCAC = 0;
+const RECOV = (() => { const r = DATA.filter(x => x.month >= "2026-01"); const low = r.reduce((a, x) => x.active < a.active ? x : a, r[0]); return {low: low.active, lowM: low.month, gain: DATA[DATA.length - 1].active - low.active}; })();
+function render() {
+  const margin = Math.max(0, +$("#in-margin").value || 0) / 100;
+  const payback = Math.max(0, +$("#in-payback").value || 0) / 100;
+  const target = Math.max(0, +$("#in-target").value || 0);
+  const full = $("#in-full").checked, mult = full ? FULL.mult : 1;
+  const cltv = B.ltvRev * mult;
+  const ltvProfit = cltv * margin, maxCac = ltvProfit * payback; MAXCAC = maxCac;
+  const needed = maxCac > 0 ? B.dspM / maxCac : 0;
+  const net = B.newM - B.cancM;
+  const gapX = maxCac > 0 ? B.dspPerReached / maxCac : 0;
+
+  $("#insights").innerHTML = [
+    insight("Subscriber base (12-month avg)", (net >= 0 ? "+" : "−") + fmt.n(Math.abs(net)) + " / month", `${fmt.n(B.newM)} new vs ${fmt.n(B.cancM)} cancelled a month on average, pulled down by the Mar–Apr 2026 stockout churn. ${fmt.n(B.active)} active subscribers today.`, net < 0 ? "a" : "g"),
+    insight("A subscriber is worth (CLTV)", fmt.usd(cltv), (full ? `S&S + one-time purchases over a ~${B.life.toFixed(1)}-month lifetime (S&S alone: ${fmt.usd(B.ltvRev)}). ` : `S&S revenue over a ~${B.life.toFixed(1)}-month lifetime. `) + `${fmt.usd(ltvProfit)} profit at ${Math.round(margin * 100)}% margin; max cost to acquire one: ${fmt.usd(maxCac)}.`, "a"),
+    insight("Recovering since June", "+" + fmt.n(RECOV.gain) + " subs", `Active subscribers bottomed at ${fmt.n(RECOV.low)} in ${fmt.mon(RECOV.lowM)} and reached ${fmt.n(B.active)} by Sep 2026. New sign-ups have beaten cancellations every month since June.`, "g"),
+    insight("DSP spend per new sub reached", fmt.usd(B.dspPerReached), `${gapX.toFixed(1)}× the max cost. ${fmt.pct(B.dspReached / B.pathTotal)} of new subscribers saw DSP first, almost always alongside Sponsored Ads.`, gapX > 1 ? "r" : "g"),
+  ].join("");
+
+  $("#k1").innerHTML = [
+    kpi("Active subscribers", fmt.n(B.active), "End of Sep 2026"),
+    kpi("New subs / month", fmt.n(B.newM), "AMC sign-ups", "green"),
+    kpi("Cancelled / month", fmt.n(B.cancM), "New − change in balance", "red"),
+    kpi("Monthly churn", fmt.pct(B.churn), "Share lost each month", "amber"),
+    kpi("Subscriber lifetime", B.life.toFixed(1) + " mo", "1 ÷ churn"),
+    kpi("Days between shipments", fmt.n(B.days), "Account average; varies by product", "", '<span class="tag tag-blue">See Products tab</span>'),
+    kpi("S&S revenue / sub / month", fmt.usd(B.revPerSub), "S&S sales ÷ active subs"),
+    kpi("CLTV – S&S only", fmt.usd(B.ltvRev), "Per subscriber, S&S orders"),
+    kpi("CLTV – full customer", fmt.usd(B.ltvRev * FULL.mult), "+" + Math.round((FULL.mult - 1) * 100) + "% one-time purchases (AMC)", full ? "accent" : "", full ? '<span class="tag tag-blue">Used for max cost</span>' : ""),
+    kpi("CLTV – profit", fmt.usd(ltvProfit), `${full ? "Full customer" : "S&S only"}, at ${Math.round(margin * 100)}% margin`),
+  ].join("");
+
+  $("#k2").innerHTML = [
+    kpi("Max cost per new subscriber", fmt.usd(maxCac), `CLTV profit × ${Math.round(payback * 100)}% payback`, "accent"),
+    kpi("Allowable DSP budget / month", fmt.usd0(maxCac * target), `For ${fmt.n(target)} extra subs a month`, "accent"),
+    kpi("Current DSP spend / month", fmt.usd0(B.dspM), "Avg Oct 2025 – Sep 2026"),
+    kpi("Top-of-funnel share of DSP", fmt.pct(B.tofShare), "Rest is loyalty + retargeting", "", B.tofShare < 0.4 ? '<span class="tag tag-amber">Mostly lower funnel</span>' : ""),
+    kpi("DSP spend per sub reached", fmt.usd(B.dspPerReached), "AMC: saw DSP ≤30 days before sign-up", gapX > 1 ? "red" : "green", gapX > 1 ? `<span class="tag tag-red">${gapX.toFixed(1)}× max cost</span>` : '<span class="tag tag-green">Under max cost</span>'),
+    kpi("New subs DSP must drive / month", fmt.n(needed), "To pay back current DSP spend"),
+    kpi("Sponsored Ads spend / month", fmt.usd0(B.saM), "SP + SB + SD, AdLabs"),
+    kpi("Total ad spend / new sub", fmt.usd((B.saM + B.dspM) / B.newM), "(Sponsored Ads + DSP) ÷ all new subs"),
+  ].join("");
+
+  $("#takeaway").innerHTML = gapX > 1
+    ? `<b>Takeaway:</b> at these assumptions a new subscriber is worth up to <b>${fmt.usd(maxCac)}</b> to acquire. DSP spends <b>${fmt.usd0(B.dspM)}</b> a month, and AMC shows about <b>${fmt.n(B.dspReached)}</b> new subscribers saw DSP before signing up in the year, so DSP spends <b>${fmt.usd(B.dspPerReached)}</b> per new subscriber it reached. To pay for itself on subscriptions alone, DSP would need to bring in about <b>${fmt.n(needed)}</b> new subscribers a month. Not every one of those sign-ups was caused by DSP, and subscribers' one-time purchases aren't counted, so treat this as the gap to close, not a final verdict.`
+    : `<b>Takeaway:</b> at these assumptions a new subscriber is worth up to <b>${fmt.usd(maxCac)}</b> to acquire, above the <b>${fmt.usd(B.dspPerReached)}</b> DSP spends per new subscriber it reached. There is room to scale top-of-funnel DSP.`;
+
+  $("#k3").innerHTML = [
+    kpi("New subs who saw DSP", fmt.pct(B.dspReached / B.pathTotal), `${fmt.n(B.dspReached)} of ${fmt.n(B.pathTotal)} sign-ups`, "accent"),
+    kpi("New subs who saw Sponsored Ads", fmt.pct(B.saReached / B.pathTotal), `${fmt.n(B.saReached)} sign-ups`, "accent"),
+    kpi("Saw DSP only", fmt.pct(PATH.dsp_only / B.pathTotal), `About ${fmt.n(PATH.dsp_only)} sign-ups`),
+    kpi("No ad exposure", fmt.pct(PATH.none / B.pathTotal), `About ${fmt.n(PATH.none)} sign-ups`),
+    kpi("DSP spend per sub reached", fmt.usd(B.dspPerReached), `vs ${fmt.usd(maxCac)} max cost`, B.dspPerReached > maxCac ? "red" : "green"),
+    kpi("Sponsored Ads spend per sub reached", fmt.usd(B.saPerReached), `vs ${fmt.usd(maxCac)} max cost`, B.saPerReached > maxCac ? "red" : "green"),
+  ].join("");
+  stageTable();
+}
+
+function stageTable() {
+  const order = ["Top of funnel", "Retargeting", "Loyalty"];
+  const tagc = {"Top of funnel": "tag-amber", "Retargeting": "tag-blue", "Loyalty": "tag-purple"};
+  $("#stage-body").innerHTML = order.map(st => {
+    const subs = PATH.campaigns.filter(c => c.stage === st).reduce((a, c) => a + c.subs, 0);
+    const sp = PATH.stage_spend13[st] || 0, per = subs ? sp / subs : 0;
+    return `<tr><td><span class="tag ${tagc[st]}" style="margin:0">${st}</span></td><td class="num">${fmt.n(subs)}</td><td class="num">${fmt.usd0(sp)}</td><td class="num">${fmt.usd(per)}</td><td class="num ${per > MAXCAC ? "red-c" : ""}">${MAXCAC ? (per / MAXCAC).toFixed(1) + "×" : "–"}</td></tr>`;
+  }).join("");
+  $("#camp-body").innerHTML = PATH.campaigns.map(c => `<tr><td class="wrap">${c.campaign}</td><td><span class="tag ${tagc[c.stage]}" style="margin:0">${c.stage}</span></td><td class="num">${fmt.n(c.subs)}</td></tr>`).join("");
+}
+
+let prodChart = null, SEL = "ALL";
+function prodKeys(sel) {
+  const all = Object.keys(ASINS);
+  if (sel === "ALL") return all;
+  if (sel === "B:VALI") return all.filter(k => ASINS[k].brand === "VALI");
+  if (sel === "B:Viter Energy") return all.filter(k => ASINS[k].brand === "Viter Energy");
+  return [sel];
+}
+function renderProduct() {
+  const keys = prodKeys(SEL), rows = aggRows(keys), m = prodMetrics(rows);
+  const label = SEL === "ALL" ? "All products" : SEL.startsWith("B:") ? SEL.slice(2) + " (all products)" : ASINS[SEL].name + " · " + SEL;
+  $("#prod-title").textContent = label;
+  const low = m.active < 50;
+  $("#kp").innerHTML = [
+    kpi("Active subscribers", fmt.n(m.active), "End of Sep 2026", "", low ? '<span class="tag tag-amber">Low volume</span>' : ""),
+    kpi("New subs / month", m.newM.toFixed(1), "AMC sign-ups", "green"),
+    kpi("Monthly churn", fmt.pct(m.churn), "Cancelled ÷ subs at start", m.churn > 0.1 ? "red" : "amber"),
+    kpi("Subscriber lifetime", m.life.toFixed(1) + " mo", "1 ÷ churn"),
+    kpi("Days between shipments", m.days ? fmt.n(m.days) : "–", "From units per subscriber"),
+    kpi("Revenue / sub / month", fmt.usd(m.revPerSub), "S&S sales ÷ active subs"),
+    kpi("CLTV – S&S only", fmt.usd(m.cltv), "Per subscriber; full-customer uplift is account level", "accent"),
+    kpi("Coupon share of S&S sales", fmt.pct(m.coupon), "Oct 2025 – Sep 2026", m.coupon > 0.08 ? "amber" : ""),
+    kpi("OOS lost S&S sales", fmt.usd0(m.oos), "Oct 2025 – Sep 2026", m.oos > 1000 ? "red" : ""),
+  ].join("");
+  if (window.Chart && built.products) drawProdChart(rows);
+  document.querySelectorAll("#prod-body tr").forEach(tr => tr.classList.toggle("sel", tr.dataset.k === SEL));
+}
+function drawProdChart(rows) {
+  if (prodChart) prodChart.destroy();
+  const o = baseOpts();
+  o.scales.y.title = {display: true, text: "Subscribers"};
+  o.scales.y1 = {position: "right", grid: {display: false}, border: {display: false}, min: 0, ticks: {callback: v => v + "%"}};
+  prodChart = new Chart($("#ch-prod"), {data: {labels: rows.map(r => fmt.mon(r.m)), datasets: [
+    {type: "line", label: "Active subscribers", data: rows.map(r => r.bal), borderColor: A, backgroundColor: A + "22", fill: true, tension: .3, pointRadius: 2, yAxisID: "y", order: 1},
+    {type: "bar", label: "New subscriptions", data: rows.map(r => r.m >= WIN_START ? r.new : null), backgroundColor: G + "cc", yAxisID: "y", order: 2},
+    {type: "line", label: "Coupon share of S&S sales", data: rows.map(r => r.sales && r.m !== "2025-12" ? +(r.cs / r.sales * 100).toFixed(1) : null), borderColor: AM, backgroundColor: AM, borderDash: [5, 4], tension: .3, pointRadius: 2, yAxisID: "y1", order: 0}]}, options: o});
+}
+function productTable() {
+  const keys = Object.keys(ASINS).map(k => ({k, m: prodMetrics(aggRows([k]))})).sort((a, b) => b.m.active - a.m.active);
+  $("#prod-body").innerHTML = keys.map(({k, m}) => `<tr class="click" data-k="${k}"><td class="wrap">${ASINS[k].name}<br><span style="color:var(--muted);font-size:11px">${k}</span>${m.active < 50 ? '<span class="lowvol">low volume</span>' : ""}</td><td>${ASINS[k].brand}</td><td class="num">${fmt.n(m.active)}</td><td class="num">${m.newM.toFixed(1)}</td><td class="num ${m.churn > 0.1 ? "red-c" : ""}">${fmt.pct(m.churn)}</td><td class="num">${m.life.toFixed(1)} mo</td><td class="num">${m.days ? fmt.n(m.days) : "–"}</td><td class="num">${fmt.usd(m.revPerSub)}</td><td class="num">${fmt.usd(m.cltv)}</td><td class="num">${fmt.pct(m.coupon)}</td><td class="num">${fmt.usd0(m.oos)}</td></tr>`).join("");
+  document.querySelectorAll("#prod-body tr").forEach(tr => tr.addEventListener("click", () => { SEL = tr.dataset.k; $("#sel-asin").value = SEL; renderProduct(); }));
+  const sel = $("#sel-asin");
+  sel.innerHTML = `<option value="ALL">All products</option><option value="B:VALI">VALI – all products</option><option value="B:Viter Energy">Viter Energy – all products</option>` +
+    keys.map(({k}) => `<option value="${k}">${ASINS[k].brand} · ${ASINS[k].name} (${k})</option>`).join("");
+  sel.addEventListener("change", () => { SEL = sel.value; renderProduct(); });
+}
+
+function fullTable() {
+  const rows = FULL.cohorts.map(c => `<tr><td>${fmt.mon(c.m)}</td><td class="num">${fmt.n(c.customers)}</td><td class="num">${fmt.usd(c.sns / c.customers)}</td><td class="num">${fmt.usd(c.order / c.customers)}</td><td class="num">${fmt.usd((c.sns + c.order) / c.customers)}</td><td class="num">+${Math.round(c.order / c.sns * 100)}%</td></tr>`);
+  const n = FULL.cohorts.reduce((a, c) => a + c.customers, 0), s = FULL.cohorts.reduce((a, c) => a + c.sns, 0), o = FULL.cohorts.reduce((a, c) => a + c.order, 0);
+  rows.push(`<tr><td><b>Total</b></td><td class="num"><b>${fmt.n(n)}</b></td><td class="num"><b>${fmt.usd(s / n)}</b></td><td class="num"><b>${fmt.usd(o / n)}</b></td><td class="num"><b>${fmt.usd((s + o) / n)}</b></td><td class="num"><b>+${Math.round(o / s * 100)}%</b></td></tr>`);
+  $("#full-body").innerHTML = rows.join("");
+}
+function monthlyTable() {
+  $("#tbody").innerHTML = DATA.map(r => {
+    const sps = r.use === "Y" ? fmt.usd(r.sales / (r.start ? (r.start + r.active) / 2 : r.active)) : "–";
+    const churn = r.churn == null ? "–" : (r.churn > 0.1 ? `<span class="red-c">${fmt.pct(r.churn)}</span>` : fmt.pct(r.churn));
+    return `<tr class="${r.use === "N" ? "muted" : ""}"><td>${fmt.mon(r.month)}</td><td class="num">${fmt.n(r.active)}</td><td class="num">${r.new == null ? "–" : fmt.n(r.new)}</td><td class="num">${r.canc == null ? "–" : fmt.n(r.canc)}</td><td class="num">${churn}</td><td class="num">${fmt.usd0(r.sales)}</td><td class="num">${sps}</td><td class="num">${fmt.usd0(r.oos)}</td><td class="num">${r.sa == null ? "–" : fmt.usd0(r.sa)}</td><td class="num">${fmt.usd0(r.dsp)}</td><td class="num">${fmt.pct(r.dsp_tof / r.dsp)}</td><td class="num">${r.sa == null || !r.new ? "–" : fmt.usd((r.sa + r.dsp) / r.new)}</td></tr>`;
+  }).join("");
+}
+
+// ---------- charts (built when their tab is first shown)
+const built = {};
+const baseOpts = () => ({responsive: true, maintainAspectRatio: false, animation: false,
+  plugins: {legend: {labels: {boxWidth: 10, boxHeight: 10}}},
+  scales: {x: {grid: {display: false}, ticks: {maxRotation: 0, autoSkip: true}}, y: {grid: {color: '#252f45'}, border: {display: false}}}});
+function buildCharts(tab) {
+  if (!window.Chart || built[tab]) return; built[tab] = true;
+  const labels = DATA.map(r => fmt.mon(r.month));
+  const win = DATA.filter(r => r.new != null);
+  if (tab === "sns") {
+    const o1 = baseOpts(); o1.plugins.legend.display = false; o1.scales.y.suggestedMin = 6000;
+    new Chart($("#ch-active"), {type: "line", data: {labels, datasets: [{label: "Active subscribers", data: DATA.map(r => r.active), borderColor: A, backgroundColor: A + "22", fill: true, tension: .3, pointRadius: 2}]}, options: o1});
+    new Chart($("#ch-flow"), {type: "bar", data: {labels: win.map(r => fmt.mon(r.month)), datasets: [
+      {label: "New", data: win.map(r => r.new), backgroundColor: G, borderRadius: 3},
+      {label: "Cancelled", data: win.map(r => r.canc), backgroundColor: R, borderRadius: 3}]}, options: baseOpts()});
+    const o3 = baseOpts(); o3.plugins.legend.display = false; o3.scales.y.min = 0; o3.scales.y.ticks = {callback: v => v + "%"};
+    o3.plugins.tooltip = {callbacks: {label: c => c.parsed.y.toFixed(1) + "%"}};
+    const bv = aggRows(prodKeys("B:VALI")), bt = aggRows(prodKeys("B:Viter Energy"));
+    const oc = baseOpts(); oc.scales.x.stacked = true; oc.scales.y.stacked = true; oc.scales.y.title = {display: true, text: "New subscriptions"};
+    oc.scales.y1 = {position: "right", grid: {display: false}, border: {display: false}, min: 0, ticks: {callback: v => v + "%"}};
+    const cm = bv.map((r, i) => i).filter(i => bv[i].m >= WIN_START);
+    const cpen = (rows, i) => rows[i].sales && rows[i].m !== "2025-12" ? +(rows[i].cs / rows[i].sales * 100).toFixed(1) : null;
+    new Chart($("#ch-coupon"), {data: {labels: cm.map(i => fmt.mon(bv[i].m)), datasets: [
+      {type: "line", label: "Viter Energy coupon share", data: cm.map(i => cpen(bt, i)), borderColor: AM, backgroundColor: AM, tension: .3, pointRadius: 3, yAxisID: "y1", order: 0},
+      {type: "line", label: "VALI coupon share", data: cm.map(i => cpen(bv, i)), borderColor: C, backgroundColor: C, borderDash: [5, 4], tension: .3, pointRadius: 3, yAxisID: "y1", order: 0},
+      {type: "bar", label: "New subs – Viter Energy", data: cm.map(i => bt[i].new), backgroundColor: P, stack: "n", yAxisID: "y", order: 1},
+      {type: "bar", label: "New subs – VALI", data: cm.map(i => bv[i].new), backgroundColor: A, stack: "n", yAxisID: "y", order: 1}]}, options: oc});
+    new Chart($("#ch-churn"), {type: "line", data: {labels: win.map(r => fmt.mon(r.month)), datasets: [{label: "Monthly churn", data: win.map(r => +(r.churn * 100).toFixed(2)), borderColor: AM, backgroundColor: AM, tension: .3, pointRadius: 3}]}, options: o3});
+  }
+  if (tab === "products") { drawProdChart(aggRows(prodKeys(SEL))); }
+  if (tab === "dsp") {
+    const op = baseOpts(); op.scales.x.stacked = true; op.scales.y.stacked = true;
+    new Chart($("#ch-path"), {type: "bar", data: {labels: PATH.months.map(r => fmt.mon(r.month)), datasets: [
+      {label: "DSP + Sponsored Ads", data: PATH.months.map(r => r.both), backgroundColor: P},
+      {label: "Sponsored Ads only", data: PATH.months.map(r => r.sa_only), backgroundColor: A}]}, options: op});
+    const os = baseOpts(); os.scales.x.stacked = true; os.scales.y.stacked = true; os.scales.y.ticks = {callback: v => "$" + (v / 1000) + "K"};
+    os.scales.y1 = {position: "right", grid: {display: false}, border: {display: false}, min: 0};
+    new Chart($("#ch-spend"), {data: {labels: win.map(r => fmt.mon(r.month)), datasets: [
+      {type: "bar", label: "Sponsored Ads", data: win.map(r => r.sa), backgroundColor: A, stack: "s", yAxisID: "y"},
+      {type: "bar", label: "DSP", data: win.map(r => r.dsp), backgroundColor: P, stack: "s", yAxisID: "y"},
+      {type: "line", label: "New subs", data: win.map(r => r.new), borderColor: G, backgroundColor: G, tension: .3, pointRadius: 3, yAxisID: "y1"}]}, options: os});
+    const od = baseOpts(); od.scales.x.stacked = true; od.scales.y.stacked = true; od.scales.y.ticks = {callback: v => "$" + (v / 1000) + "K"};
+    od.plugins.tooltip = {callbacks: {label: c => c.dataset.label + ": " + fmt.usd0(c.parsed.y)}};
+    new Chart($("#ch-dsp"), {type: "bar", data: {labels, datasets: [
+      {label: "Top of funnel", data: FUNNEL["Top of funnel"], backgroundColor: AM},
+      {label: "Retargeting", data: FUNNEL["Retargeting"], backgroundColor: A},
+      {label: "Loyalty", data: FUNNEL["Loyalty"], backgroundColor: P}]}, options: od});
+  }
+}
+
+// ---------- tabs
+const TABS = [{id: "overview", label: "📊 Overview"}, {id: "sns", label: "🔁 Subscribe & Save"}, {id: "dsp", label: "🎯 DSP & Ad Path"}, {id: "products", label: "📦 Products"}, {id: "notes", label: "📝 Method & Notes"}];
+TABS.forEach((t, i) => {
+  const b = document.createElement("button");
+  b.className = "tab-btn" + (i === 0 ? " active" : ""); b.textContent = t.label; b.id = "btn-" + t.id;
+  b.setAttribute("role", "tab");
+  b.onclick = () => switchTab(t.id);
+  $("#tabbar").appendChild(b);
+});
+function switchTab(id) {
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.id === "btn-" + id));
+  document.querySelectorAll(".tab-content").forEach(c => c.classList.toggle("active", c.id === "tab-" + id));
+  buildCharts(id);
+}
+
+$("#path-sub").textContent = `Monthly. "DSP only" (≈${PATH.dsp_only} for the year) and "No ad exposure" (≈${PATH.none}) were too small for AMC to show by month.`;
+["#in-margin", "#in-payback", "#in-target"].forEach(s => $(s).addEventListener("input", render));
+$("#in-full").addEventListener("change", render);
+render(); monthlyTable(); fullTable(); productTable(); renderProduct();
+const h = (location.hash || "").slice(1);
+if (TABS.some(t => t.id === h)) switchTab(h);
+</script>
